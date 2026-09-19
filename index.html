@@ -341,7 +341,12 @@
   }
 
   function jobFromRow(r) {
-    return { id: r.id, clientId: r.client_id, serviceType: r.service_type, status: r.status, price: Number(r.price), notes: r.notes || "" };
+    return { id: r.id, clientId: r.client_id, serviceType: r.service_type, status: r.status, price: Number(r.price), notes: r.notes || "", assignedTo: r.assigned_to || null };
+  }
+  function contractorLabel(username) {
+    if (!username) return "Unassigned";
+    var u = USERS[username];
+    return u ? u.displayName : username;
   }
   function invoiceFromRow(r) {
     return {
@@ -616,9 +621,12 @@
   }
 
   function renderContractorList() {
+    var myJobs = state.jobs.filter(function (j) {
+      return !j.assignedTo || j.assignedTo === state.currentUser.username;
+    });
     var html = '<div class="section-label">Today\u2019s jobs</div>';
-    if (!state.jobs.length) html += '<div class="empty">No jobs assigned today.</div>';
-    state.jobs.forEach(function (job) {
+    if (!myJobs.length) html += '<div class="empty">No jobs assigned today.</div>';
+    myJobs.forEach(function (job) {
       var svc = PRICES[job.serviceType];
       html += '' +
         '<div class="card job-card" data-open="' + job.id + '" tabindex="0">' +
@@ -706,6 +714,11 @@
     var serviceOptions = serviceKeys.map(function (key) {
       return '<option value="' + key + '" data-default-price="' + PRICES[key].defaultPrice + '">' + PRICES[key].label + ' (usually $' + PRICES[key].defaultPrice + ')</option>';
     }).join("");
+    var contractorOptions = Object.keys(USERS).filter(function (key) {
+      return USERS[key].role === "contractor";
+    }).map(function (key) {
+      return '<option value="' + key + '">' + USERS[key].displayName + '</option>';
+    }).join("");
     return '' +
       '<div class="section-label">New job</div>' +
       '<div class="card">' +
@@ -713,6 +726,8 @@
         '<select id="newJobClient">' + clientOptions + '</select>' +
         '<div class="field-label">Service template</div>' +
         '<select id="newJobService">' + serviceOptions + '</select>' +
+        '<div class="field-label">Assign to</div>' +
+        '<select id="newJobAssignee">' + contractorOptions + '</select>' +
         '<div class="field-label">Price</div>' +
         '<input type="text" inputmode="decimal" id="newJobPrice" value="' + PRICES[serviceKeys[0]].defaultPrice + '" placeholder="e.g. 85">' +
         '<div class="field-label">Comments for the contractor (optional)</div>' +
@@ -721,8 +736,8 @@
       '</div>';
   }
 
-  function createJob(clientId, serviceType, price, notes) {
-    var row = { id: "j" + Date.now(), client_id: clientId, service_type: serviceType, status: "pending", price: price, notes: notes };
+  function createJob(clientId, serviceType, price, notes, assignedTo) {
+    var row = { id: "j" + Date.now(), client_id: clientId, service_type: serviceType, status: "pending", price: price, notes: notes, assigned_to: assignedTo };
     sb.from("jobs").insert(row).then(function (res) {
       if (res.error) { toast("Couldn't add job"); return; }
       var job = jobFromRow(row);
@@ -822,11 +837,28 @@
 
   function renderClientView() {
     var clientId = state.currentUser.clientId;
+    var ongoingJobs = state.jobs.filter(function (j) {
+      return j.clientId === clientId && j.status !== "invoiced";
+    });
     var myInvoices = state.invoices
       .filter(function (i) { return i.clientId === clientId; })
       .sort(function (a, b) { return new Date(b.sentAt) - new Date(a.sentAt); });
 
-    var html = '<div class="section-label">Your bills &amp; photos</div>';
+    var html = '<div class="section-label">Ongoing jobs</div>';
+    if (!ongoingJobs.length) {
+      html += '<div class="empty">Nothing in progress right now.</div>';
+    } else {
+      ongoingJobs.forEach(function (job) {
+        var svc = PRICES[job.serviceType];
+        var statusLabel = job.status === "pending" ? "Scheduled" : job.status === "submitted" ? "Completed, awaiting review" : "Approved, billing soon";
+        html += '<div class="card">' +
+          '<div class="job-address">' + svc.label + '</div>' +
+          '<div class="client-line"><span>Assigned to ' + contractorLabel(job.assignedTo) + '</span><span class="badge ' + job.status + '">' + statusLabel + '</span></div>' +
+        '</div>';
+      });
+    }
+
+    html += '<div class="section-label" style="margin-top:24px;">Your bills &amp; photos</div>';
     if (!myInvoices.length) {
       html += '<div class="empty">No invoices yet — check back after your next service.</div>';
       return html;
@@ -923,7 +955,8 @@
         var serviceType = document.getElementById("newJobService").value;
         var price = parseFloat(document.getElementById("newJobPrice").value) || 0;
         var notes = document.getElementById("newJobNotes").value.trim();
-        createJob(clientId, serviceType, price, notes);
+        var assignedTo = document.getElementById("newJobAssignee").value;
+        createJob(clientId, serviceType, price, notes, assignedTo);
       });
     }
 
