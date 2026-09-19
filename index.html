@@ -256,17 +256,33 @@
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   var PRICES = {
-    poolClean: { label: "Pool clean", amount: 85 },
-    chemBalance: { label: "Chemical balance", amount: 45 },
-    equipCheck: { label: "Equipment check", amount: 60 },
-    pumpReplace: { label: "Pump replacement", amount: 350 }
+    poolClean: { label: "Pool clean", defaultPrice: 85 },
+    chemBalance: { label: "Chemical balance", defaultPrice: 45 },
+    equipCheck: { label: "Equipment check", defaultPrice: 60 },
+    pumpReplace: { label: "Pump replacement", defaultPrice: 350 },
+    filterCleaning: { label: "Filter cleaning", defaultPrice: 65 },
+    leakDetection: { label: "Leak detection", defaultPrice: 120 },
+    greenToClean: { label: "Green-to-clean treatment", defaultPrice: 275 },
+    deckCleaning: { label: "Tile & deck cleaning", defaultPrice: 90 },
+    saltCellReplace: { label: "Salt cell replacement", defaultPrice: 220 },
+    heaterInspect: { label: "Heater inspection", defaultPrice: 95 },
+    poolOpening: { label: "Seasonal pool opening", defaultPrice: 150 },
+    poolClosing: { label: "Seasonal pool closing", defaultPrice: 150 }
   };
 
   var CHECKLISTS = {
     poolClean: ["Skim & net debris", "Vacuum floor", "Brush walls & tile", "Empty skimmer baskets"],
     chemBalance: ["Test pH & chlorine", "Add chemicals to target", "Log dosage used"],
     equipCheck: ["Inspect pump & filter", "Check pressure gauge", "Backwash if needed"],
-    pumpReplace: ["Remove old pump", "Install new pump", "Test operation", "Confirm no leaks"]
+    pumpReplace: ["Remove old pump", "Install new pump", "Test operation", "Confirm no leaks"],
+    filterCleaning: ["Remove filter cartridge/grid", "Rinse thoroughly", "Inspect for damage", "Reinstall and test pressure"],
+    leakDetection: ["Visual inspect equipment pad", "Pressure test lines", "Dye test suspect areas", "Document findings"],
+    greenToClean: ["Test and shock chlorine level", "Brush algae from walls/floor", "Run filter continuously", "Re-test and balance"],
+    deckCleaning: ["Clear debris from deck/tile", "Scrub tile line", "Pressure wash deck", "Rinse and inspect"],
+    saltCellReplace: ["Inspect old cell for scale", "Remove and replace cell", "Reset controller settings", "Test salt/chlorine output"],
+    heaterInspect: ["Check ignition/pilot", "Inspect for leaks/corrosion", "Test thermostat", "Clear vent and log reading"],
+    poolOpening: ["Remove and clean cover", "Reconnect equipment", "Balance chemicals", "Run system full cycle"],
+    poolClosing: ["Balance chemicals for winter", "Lower water level as needed", "Blow out lines", "Install cover"]
   };
 
   var USERS = {
@@ -325,7 +341,7 @@
   }
 
   function jobFromRow(r) {
-    return { id: r.id, clientId: r.client_id, serviceType: r.service_type, status: r.status };
+    return { id: r.id, clientId: r.client_id, serviceType: r.service_type, status: r.status, price: Number(r.price), notes: r.notes || "" };
   }
   function invoiceFromRow(r) {
     return {
@@ -352,7 +368,7 @@
   function seedDatabase() {
     return sb.from("clients").insert(SEED_CLIENTS).then(function () {
       return sb.from("jobs").insert(SEED_JOBS.map(function (j) {
-        return { id: j.id, client_id: j.clientId, service_type: j.serviceType, status: j.status };
+        return { id: j.id, client_id: j.clientId, service_type: j.serviceType, status: j.status, price: PRICES[j.serviceType].defaultPrice };
       }));
     });
   }
@@ -628,6 +644,10 @@
       '<div><div class="detail-title">' + svc.label + '</div><div class="detail-sub">' + client.address + '</div></div>' +
     '</div>';
 
+    if (job.notes) {
+      html += '<div class="card" style="background:var(--accent-tint);border-color:transparent;"><div class="detail-sub" style="color:var(--ink);">Office note: "' + job.notes + '"</div></div>';
+    }
+
     html += '<div class="card"><div class="checklist">';
     checklist.forEach(function (item, i) {
       var checked = draft.checklist[i] ? "checked" : "";
@@ -671,7 +691,7 @@
     var sum = 0;
     jobIds.forEach(function (id) {
       var job = jobById(id);
-      sum += PRICES[job.serviceType].amount;
+      sum += Number(job.price) || 0;
     });
     return sum;
   }
@@ -680,8 +700,9 @@
     var clientOptions = state.clients.map(function (c) {
       return '<option value="' + c.id + '">' + c.name + ' — ' + c.address + '</option>';
     }).join("");
-    var serviceOptions = Object.keys(PRICES).map(function (key) {
-      return '<option value="' + key + '">' + PRICES[key].label + ' — $' + PRICES[key].amount + '</option>';
+    var serviceKeys = Object.keys(PRICES);
+    var serviceOptions = serviceKeys.map(function (key) {
+      return '<option value="' + key + '" data-default-price="' + PRICES[key].defaultPrice + '">' + PRICES[key].label + ' (usually $' + PRICES[key].defaultPrice + ')</option>';
     }).join("");
     return '' +
       '<div class="section-label">New job</div>' +
@@ -690,12 +711,16 @@
         '<select id="newJobClient">' + clientOptions + '</select>' +
         '<div class="field-label">Service template</div>' +
         '<select id="newJobService">' + serviceOptions + '</select>' +
-        '<button class="btn btn-primary" id="createJobBtn">Add job</button>' +
+        '<div class="field-label">Price</div>' +
+        '<input type="text" inputmode="decimal" id="newJobPrice" value="' + PRICES[serviceKeys[0]].defaultPrice + '" placeholder="e.g. 85">' +
+        '<div class="field-label">Comments for the contractor (optional)</div>' +
+        '<textarea id="newJobNotes" placeholder="Anything the contractor should know before they go..."></textarea>' +
+        '<div style="margin-top:12px;"><button class="btn btn-primary" id="createJobBtn">Add job</button></div>' +
       '</div>';
   }
 
-  function createJob(clientId, serviceType) {
-    var row = { id: "j" + Date.now(), client_id: clientId, service_type: serviceType, status: "pending" };
+  function createJob(clientId, serviceType, price, notes) {
+    var row = { id: "j" + Date.now(), client_id: clientId, service_type: serviceType, status: "pending", price: price, notes: notes };
     sb.from("jobs").insert(row).then(function (res) {
       if (res.error) { toast("Couldn't add job"); return; }
       var job = jobFromRow(row);
@@ -721,7 +746,8 @@
       html += '<div class="card">' +
         '<div class="job-address">' + client.name + '</div>' +
         '<div class="client-line"><span>' + client.address + '</span><span>' + svc.label + '</span></div>' +
-        '<div class="client-line"><span>' + client.phone + '</span><span>$' + svc.amount + '</span></div>';
+        '<div class="client-line"><span>' + client.phone + '</span><span>$' + Number(job.price).toFixed(2) + '</span></div>';
+      if (job.notes) html += '<div class="detail-sub" style="margin-top:8px;">Office note: "' + job.notes + '"</div>';
       if (sub && sub.notes) html += '<div class="detail-sub" style="margin-top:8px;">"' + sub.notes + '"</div>';
       if (sub && sub.photos.length) {
         html += '<div class="photo-strip">';
@@ -744,7 +770,7 @@
       approved.forEach(function (job) {
         var client = clientById(job.clientId);
         var svc = PRICES[job.serviceType];
-        html += '<div class="invoice-row"><span>' + client.name + ' — ' + svc.label + '</span><span>$' + svc.amount.toFixed(2) + '</span></div>';
+        html += '<div class="invoice-row"><span>' + client.name + ' — ' + svc.label + '</span><span>$' + Number(job.price).toFixed(2) + '</span></div>';
       });
       html += '<div class="invoice-box">' +
         '<div class="pay-toggle">' +
@@ -810,7 +836,7 @@
       inv.jobIds.forEach(function (jobId) {
         var job = jobById(jobId);
         var svc = PRICES[job.serviceType];
-        html += '<div class="invoice-row"><span>' + svc.label + '</span><span>$' + svc.amount.toFixed(2) + '</span></div>';
+        html += '<div class="invoice-row"><span>' + svc.label + '</span><span>$' + Number(job.price).toFixed(2) + '</span></div>';
         var sub = state.submissions[jobId];
         if (sub && sub.photos.length) {
           html += '<div class="photo-strip">';
@@ -887,7 +913,18 @@
       createJobBtn.addEventListener("click", function () {
         var clientId = document.getElementById("newJobClient").value;
         var serviceType = document.getElementById("newJobService").value;
-        createJob(clientId, serviceType);
+        var price = parseFloat(document.getElementById("newJobPrice").value) || 0;
+        var notes = document.getElementById("newJobNotes").value.trim();
+        createJob(clientId, serviceType, price, notes);
+      });
+    }
+
+    var newJobService = document.getElementById("newJobService");
+    if (newJobService) {
+      newJobService.addEventListener("change", function () {
+        var opt = newJobService.options[newJobService.selectedIndex];
+        var priceField = document.getElementById("newJobPrice");
+        if (priceField) priceField.value = opt.getAttribute("data-default-price");
       });
     }
 
