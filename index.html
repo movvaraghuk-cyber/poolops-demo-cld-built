@@ -239,8 +239,8 @@
   }
   .login-field input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
   .login-error { color: var(--danger); font-size: 12px; margin: 4px 2px 12px; min-height: 14px; }
-  .user-chip { display: flex; align-items: center; gap: 10px; }
-  .user-chip .name { font-size: 13px; }
+  .user-chip { display: flex; align-items: center; gap: 8px; }
+  .user-chip .name { font-size: 13px; margin-right: 2px; }
   .logout-btn { background: rgba(255,255,255,0.14); border: none; color: #fff; font-size: 12px; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
 </style>
 </head>
@@ -609,7 +609,9 @@
     return '' +
       '<header class="topbar">' +
         '<div class="brand">PoolOps<small>Field capture &amp; billing — demo</small></div>' +
-        '<div class="user-chip"><span class="name">' + (user ? user.displayName : "") + '</span><button class="logout-btn" id="logoutBtn">Log out</button></div>' +
+        '<div class="user-chip"><span class="name">' + (user ? user.displayName : "") + '</span>' +
+          '<button class="logout-btn" id="refreshBtn" aria-label="Refresh" title="Refresh">⟳</button>' +
+          '<button class="logout-btn" id="logoutBtn">Log out</button></div>' +
       '</header>';
   }
 
@@ -907,6 +909,12 @@
 
     var logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
+    var refreshBtn = document.getElementById("refreshBtn");
+    if (refreshBtn) refreshBtn.addEventListener("click", function () {
+      state.view = "list";
+      loadAll();
+    });
 
     var createJobBtn = document.getElementById("createJobBtn");
     if (createJobBtn) {
