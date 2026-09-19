@@ -597,6 +597,29 @@
     });
   }
 
+  function startStripeCheckout(invoiceId, btn) {
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Redirecting to secure checkout…";
+    fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoiceId: invoiceId })
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast(data.error || "Couldn't start checkout");
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }).catch(function () {
+      toast("Couldn't reach payment service");
+      btn.disabled = false;
+      btn.textContent = originalText;
+    });
+  }
+
   function markInvoicePaid(invoiceId) {
     var inv = state.invoices.find(function (i) { return i.id === invoiceId; });
     if (!inv) return;
@@ -886,7 +909,7 @@
       if (inv.status === "paid") {
         html += '<div style="margin-top:12px;"><span class="badge paid">Paid ' + new Date(inv.paidAt).toLocaleDateString() + '</span></div>';
       } else {
-        html += '<div style="margin-top:12px;"><button class="btn btn-primary" data-pay-invoice="' + inv.id + '">Pay ' + (inv.payMethod === "card" ? "by card" : "by bank transfer") + '</button></div>';
+        html += '<div style="margin-top:12px;"><button class="btn btn-primary" data-stripe-pay="' + inv.id + '">Pay ' + (inv.payMethod === "card" ? "by card" : "by bank transfer") + '</button></div>';
       }
       html += '</div>';
     });
@@ -1019,6 +1042,10 @@
 
     document.querySelectorAll("[data-pay-invoice]").forEach(function (btn) {
       btn.addEventListener("click", function () { markInvoicePaid(btn.getAttribute("data-pay-invoice")); });
+    });
+
+    document.querySelectorAll("[data-stripe-pay]").forEach(function (btn) {
+      btn.addEventListener("click", function () { startStripeCheckout(btn.getAttribute("data-stripe-pay"), btn); });
     });
 
     document.querySelectorAll("[data-pay]").forEach(function (btn) {
