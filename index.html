@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>PoolOps — Field Capture</title>
+<title>ServiceOps — Field Capture</title>
 <style>
   :root {
     --bg: #F4F6F5;
@@ -452,7 +452,7 @@
   function renderLogin() {
     return '' +
       '<div class="login-wrap"><div class="login-card">' +
-        '<div class="login-brand"><div class="title">PoolOps</div><div class="sub">Sign in to continue</div></div>' +
+        '<div class="login-brand"><div class="title">ServiceOps</div><div class="sub">Sign in to continue</div></div>' +
         '<form id="loginForm">' +
           '<div class="login-field"><label for="loginUser">Username</label>' +
             '<input type="text" id="loginUser" autocapitalize="none" autocomplete="username" placeholder="owner, manager, contractor1, customer1–4"></div>' +
@@ -613,7 +613,7 @@
     var user = state.currentUser;
     return '' +
       '<header class="topbar">' +
-        '<div class="brand">PoolOps<small>Field capture &amp; billing — demo</small></div>' +
+        '<div class="brand">ServiceOps<small>Field capture &amp; billing — demo</small></div>' +
         '<div class="user-chip"><span class="name">' + (user ? user.displayName : "") + '</span>' +
           '<button class="logout-btn" id="refreshBtn" aria-label="Refresh" title="Refresh">⟳</button>' +
           '<button class="logout-btn" id="logoutBtn">Log out</button></div>' +
