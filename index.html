@@ -235,8 +235,13 @@
 <div class="app" id="app"></div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function () {
+  var SUPABASE_URL = "https://uuaobvbrvubuwhymrwle.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1YW9idmJydnVidXdoeW1yd2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4MzkwNTksImV4cCI6MjEwNTQxNTA1OX0.k88zPLt6m4O5IDKrPvV1USt-_Pu8ccEMvVSuhiKoP-4";
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   var PRICES = {
     poolClean: { label: "Pool clean", amount: 85 },
     chemBalance: { label: "Chemical balance", amount: 45 },
@@ -289,37 +294,102 @@
     currentUser: load("po_current_user", null),
     loginError: "",
     role: load("po_role", "contractor"),
-    clients: load("po_clients", SEED_CLIENTS),
-    jobs: load("po_jobs", SEED_JOBS),
-    submissions: load("po_submissions", {}),
-    invoices: load("po_invoices", []),
+    clients: [],
+    jobs: [],
+    submissions: {},
+    invoices: [],
+    loading: true,
+    loadError: "",
     view: "list",
     activeJobId: null,
     draft: null,
     payMethod: "ach"
   };
 
-  function persist() {
+  function persistSession() {
     save("po_current_user", state.currentUser);
     save("po_role", state.role);
-    save("po_clients", state.clients);
-    save("po_jobs", state.jobs);
-    save("po_submissions", state.submissions);
-    save("po_invoices", state.invoices);
+  }
+
+  function jobFromRow(r) {
+    return { id: r.id, clientId: r.client_id, serviceType: r.service_type, status: r.status };
+  }
+  function invoiceFromRow(r) {
+    return {
+      id: r.id, clientId: r.client_id, jobIds: r.job_ids, payMethod: r.pay_method,
+      subtotal: Number(r.subtotal), surcharge: Number(r.surcharge), total: Number(r.total),
+      sentAt: r.sent_at, status: r.status, paidAt: r.paid_at
+    };
+  }
+  function submissionFromRow(r) {
+    return {
+      checklist: r.checklist || {}, notes: r.notes || "", photos: r.photos || [],
+      geo: (r.geo_lat && r.geo_lng) ? { lat: r.geo_lat, lng: r.geo_lng } : null,
+      timestamp: r.submitted_at
+    };
+  }
+
+  function attachDisplayAddresses() {
+    state.jobs.forEach(function (job) {
+      var c = clientById(job.clientId);
+      job.address_display = c ? c.address : "";
+    });
+  }
+
+  function seedDatabase() {
+    return sb.from("clients").insert(SEED_CLIENTS).then(function () {
+      return sb.from("jobs").insert(SEED_JOBS.map(function (j) {
+        return { id: j.id, client_id: j.clientId, service_type: j.serviceType, status: j.status };
+      }));
+    });
+  }
+
+  function loadAll() {
+    state.loading = true;
+    state.loadError = "";
+    render();
+    return Promise.all([
+      sb.from("clients").select("*"),
+      sb.from("jobs").select("*"),
+      sb.from("job_submissions").select("*"),
+      sb.from("invoices").select("*")
+    ]).then(function (results) {
+      var clientsRes = results[0], jobsRes = results[1], subsRes = results[2], invRes = results[3];
+      if (clientsRes.error || jobsRes.error || subsRes.error || invRes.error) {
+        throw (clientsRes.error || jobsRes.error || subsRes.error || invRes.error);
+      }
+      if (clientsRes.data.length === 0) {
+        return seedDatabase().then(loadAll);
+      }
+      state.clients = clientsRes.data;
+      state.jobs = jobsRes.data.map(jobFromRow);
+      var subsObj = {};
+      subsRes.data.forEach(function (r) { subsObj[r.job_id] = submissionFromRow(r); });
+      state.submissions = subsObj;
+      state.invoices = invRes.data.map(invoiceFromRow);
+      attachDisplayAddresses();
+      state.loading = false;
+      render();
+    }).catch(function (err) {
+      state.loading = false;
+      state.loadError = (err && err.message) ? err.message : "Couldn't reach the database.";
+      render();
+    });
   }
 
   function resetDemo() {
-    localStorage.removeItem("po_clients");
-    localStorage.removeItem("po_jobs");
-    localStorage.removeItem("po_submissions");
-    localStorage.removeItem("po_invoices");
-    state.clients = SEED_CLIENTS.map(function(c){ return Object.assign({}, c); });
-    state.jobs = SEED_JOBS.map(function(j){ return Object.assign({}, j); });
-    state.submissions = {};
-    state.invoices = [];
-    state.view = "list";
-    state.activeJobId = null;
+    state.loading = true;
     render();
+    sb.from("invoices").delete().not("id", "is", null)
+      .then(function () { return sb.from("job_submissions").delete().not("job_id", "is", null); })
+      .then(function () { return sb.from("jobs").delete().not("id", "is", null); })
+      .then(function () { return sb.from("clients").delete().not("id", "is", null); })
+      .then(seedDatabase)
+      .then(function () {
+        state.view = "list";
+        state.activeJobId = null;
+        return loadAll();
+      });
   }
 
   function attemptLogin(username, password) {
@@ -334,14 +404,14 @@
     state.role = user.role;
     state.loginError = "";
     state.view = "list";
-    persist();
+    persistSession();
     render();
   }
 
   function logout() {
     state.currentUser = null;
     state.loginError = "";
-    persist();
+    persistSession();
     render();
   }
 
@@ -424,20 +494,31 @@
   }
 
   function finishSubmit(job, draft) {
-    state.submissions[job.id] = draft;
-    job.status = "submitted";
-    persist();
-    state.view = "list";
-    render();
-    toast("Job submitted — sent to review");
+    sb.from("job_submissions").upsert({
+      job_id: job.id,
+      checklist: draft.checklist,
+      notes: draft.notes,
+      photos: draft.photos,
+      geo_lat: draft.geo ? draft.geo.lat : null,
+      geo_lng: draft.geo ? draft.geo.lng : null,
+      submitted_at: draft.timestamp
+    }).then(function () {
+      return sb.from("jobs").update({ status: "submitted" }).eq("id", job.id);
+    }).then(function () {
+      state.submissions[job.id] = draft;
+      job.status = "submitted";
+      state.view = "list";
+      render();
+      toast("Job submitted — sent to review");
+    });
   }
 
   function approveJob(jobId) {
-    var job = jobById(jobId);
-    job.status = "approved";
-    persist();
-    render();
-    toast("Approved and added to billing");
+    sb.from("jobs").update({ status: "approved" }).eq("id", jobId).then(function () {
+      jobById(jobId).status = "approved";
+      render();
+      toast("Approved and added to billing");
+    });
   }
 
   function sendInvoices() {
@@ -450,40 +531,48 @@
       byClient[job.clientId].push(job.id);
     });
 
-    var count = 0;
+    var newInvoiceRows = [];
+    var allJobIds = [];
     Object.keys(byClient).forEach(function (clientId) {
       var jobIds = byClient[clientId];
       var subtotal = computeSubtotal(jobIds);
       var surcharge = state.payMethod === "card" ? Math.round(subtotal * 0.03 * 100) / 100 : 0;
       var total = Math.round((subtotal + surcharge) * 100) / 100;
-      state.invoices.push({
+      newInvoiceRows.push({
         id: "inv_" + Date.now() + "_" + clientId,
-        clientId: clientId,
-        jobIds: jobIds,
-        payMethod: state.payMethod,
+        client_id: clientId,
+        job_ids: jobIds,
+        pay_method: state.payMethod,
         subtotal: subtotal,
         surcharge: surcharge,
         total: total,
-        sentAt: new Date().toISOString(),
+        sent_at: new Date().toISOString(),
         status: "sent"
       });
-      jobIds.forEach(function (id) { jobById(id).status = "invoiced"; });
-      count++;
+      allJobIds = allJobIds.concat(jobIds);
     });
 
-    persist();
-    render();
-    toast(count > 1 ? "Invoices sent to " + count + " clients" : "Invoice sent to client");
+    sb.from("invoices").insert(newInvoiceRows).then(function () {
+      return sb.from("jobs").update({ status: "invoiced" }).in("id", allJobIds);
+    }).then(function () {
+      newInvoiceRows.forEach(function (r) { state.invoices.push(invoiceFromRow(r)); });
+      allJobIds.forEach(function (id) { jobById(id).status = "invoiced"; });
+      render();
+      var count = newInvoiceRows.length;
+      toast(count > 1 ? "Invoices sent to " + count + " clients" : "Invoice sent to client");
+    });
   }
 
   function markInvoicePaid(invoiceId) {
     var inv = state.invoices.find(function (i) { return i.id === invoiceId; });
     if (!inv) return;
-    inv.status = "paid";
-    inv.paidAt = new Date().toISOString();
-    persist();
-    render();
-    toast("Marked as paid");
+    var paidAt = new Date().toISOString();
+    sb.from("invoices").update({ status: "paid", paid_at: paidAt }).eq("id", invoiceId).then(function () {
+      inv.status = "paid";
+      inv.paidAt = paidAt;
+      render();
+      toast("Marked as paid");
+    });
   }
 
   function renderTopbar() {
@@ -709,6 +798,17 @@
       return;
     }
 
+    if (state.loading) {
+      app.innerHTML = renderTopbar() + '<main><div class="empty">Loading…</div></main>';
+      return;
+    }
+    if (state.loadError) {
+      app.innerHTML = renderTopbar() + '<main><div class="empty">Couldn\'t reach the database: ' + state.loadError + '<br><br><button class="btn btn-outline" id="retryBtn" style="width:auto;padding:8px 14px;margin-top:8px;">Retry</button></div></main>';
+      var retryBtn = document.getElementById("retryBtn");
+      if (retryBtn) retryBtn.addEventListener("click", loadAll);
+      return;
+    }
+
     var body = "";
 
     if (state.role === "contractor") {
@@ -797,13 +897,7 @@
     });
   }
 
-  // attach display address (contractor never sees client name/phone/email)
-  state.jobs.forEach(function (job) {
-    var c = clientById(job.clientId);
-    job.address_display = c ? c.address : "";
-  });
-
-  render();
+  loadAll();
 })();
 </script>
 </body>
