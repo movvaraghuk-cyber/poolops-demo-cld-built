@@ -173,6 +173,19 @@
   }
   textarea:focus, .btn:focus-visible, .job-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
+  select {
+    width: 100%;
+    font-family: var(--font);
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 11px 12px;
+    margin-bottom: 12px;
+  }
+  select:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
   .field-label { font-size: 12px; color: var(--ink-soft); margin: 16px 0 6px 2px; }
 
   .photo-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
@@ -663,11 +676,43 @@
     return sum;
   }
 
+  function renderNewJobForm() {
+    var clientOptions = state.clients.map(function (c) {
+      return '<option value="' + c.id + '">' + c.name + ' — ' + c.address + '</option>';
+    }).join("");
+    var serviceOptions = Object.keys(PRICES).map(function (key) {
+      return '<option value="' + key + '">' + PRICES[key].label + ' — $' + PRICES[key].amount + '</option>';
+    }).join("");
+    return '' +
+      '<div class="section-label">New job</div>' +
+      '<div class="card">' +
+        '<div class="field-label" style="margin-top:0;">Client</div>' +
+        '<select id="newJobClient">' + clientOptions + '</select>' +
+        '<div class="field-label">Service template</div>' +
+        '<select id="newJobService">' + serviceOptions + '</select>' +
+        '<button class="btn btn-primary" id="createJobBtn">Add job</button>' +
+      '</div>';
+  }
+
+  function createJob(clientId, serviceType) {
+    var row = { id: "j" + Date.now(), client_id: clientId, service_type: serviceType, status: "pending" };
+    sb.from("jobs").insert(row).then(function (res) {
+      if (res.error) { toast("Couldn't add job"); return; }
+      var job = jobFromRow(row);
+      var c = clientById(clientId);
+      job.address_display = c ? c.address : "";
+      state.jobs.push(job);
+      render();
+      toast("Job added");
+    });
+  }
+
   function renderManagerList() {
     var submitted = state.jobs.filter(function (j) { return j.status === "submitted"; });
     var approved = state.jobs.filter(function (j) { return j.status === "approved"; });
 
-    var html = '<div class="section-label">Pending review</div>';
+    var html = renderNewJobForm();
+    html += '<div class="section-label">Pending review</div>';
     if (!submitted.length) html += '<div class="empty">Nothing waiting on you right now.</div>';
     submitted.forEach(function (job) {
       var client = clientById(job.clientId);
@@ -836,6 +881,15 @@
 
     var logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
+    var createJobBtn = document.getElementById("createJobBtn");
+    if (createJobBtn) {
+      createJobBtn.addEventListener("click", function () {
+        var clientId = document.getElementById("newJobClient").value;
+        var serviceType = document.getElementById("newJobService").value;
+        createJob(clientId, serviceType);
+      });
+    }
 
     var resetBtn = document.getElementById("resetBtn");
     if (resetBtn) resetBtn.addEventListener("click", resetDemo);
