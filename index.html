@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>PoolOps — Field Capture</title>
+<style>
+  :root {
+    --bg: #F4F6F5;
+    --surface: #FFFFFF;
+    --surface-2: #EAEFED;
+    --ink: #142322;
+    --ink-soft: #4B5B59;
+    --ink-faint: #8A9694;
+    --primary: #0E4F4F;
+    --primary-strong: #0A3A3A;
+    --primary-tint: #E3EEEC;
+    --accent: #C97A2B;
+    --accent-tint: #FBEDDC;
+    --danger: #B23A2E;
+    --danger-tint: #F8E6E3;
+    --success: #2F7A4E;
+    --success-tint: #E4F1E8;
+    --line: #DCE3E1;
+    --radius: 10px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg: #0F1614;
+      --surface: #182220;
+      --surface-2: #1F2B28;
+      --ink: #E7EEEC;
+      --ink-soft: #AEBBB8;
+      --ink-faint: #6E7C79;
+      --primary: #4FB3A9;
+      --primary-strong: #6BC7BD;
+      --primary-tint: #1B3532;
+      --accent: #E3A15C;
+      --accent-tint: #33281A;
+      --danger: #E48579;
+      --danger-tint: #3A211D;
+      --success: #7BC69A;
+      --success-tint: #1E2E22;
+      --line: #2B3936;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1614;
+    --surface: #182220;
+    --surface-2: #1F2B28;
+    --ink: #E7EEEC;
+    --ink-soft: #AEBBB8;
+    --ink-faint: #6E7C79;
+    --primary: #4FB3A9;
+    --primary-strong: #6BC7BD;
+    --primary-tint: #1B3532;
+    --accent: #E3A15C;
+    --accent-tint: #33281A;
+    --danger: #E48579;
+    --danger-tint: #3A211D;
+    --success: #7BC69A;
+    --success-tint: #1E2E22;
+    --line: #2B3936;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header.topbar {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  header.topbar .brand { font-size: 16px; font-weight: 500; letter-spacing: 0.2px; }
+  header.topbar .brand small { display: block; font-size: 11px; opacity: 0.75; font-weight: 400; margin-top: 1px; }
+
+  .role-switch {
+    display: flex;
+    background: rgba(255,255,255,0.14);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .role-switch button {
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.75);
+    font-size: 12px;
+    font-family: var(--font);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .role-switch button.active { background: #fff; color: var(--primary-strong); font-weight: 500; }
+
+  main { flex: 1; padding: 16px; padding-bottom: 48px; }
+  .section-label { font-size: 13px; color: var(--ink-soft); margin: 4px 2px 10px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .job-card { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
+  .job-card:active { background: var(--surface-2); }
+  .job-main { min-width: 0; }
+  .job-address { font-size: 15px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .job-service { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .badge { font-size: 11px; padding: 4px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .badge.pending { background: var(--surface-2); color: var(--ink-soft); }
+  .badge.submitted { background: var(--accent-tint); color: var(--accent); }
+  .badge.approved { background: var(--success-tint); color: var(--success); }
+  .badge.invoiced { background: var(--primary-tint); color: var(--primary); }
+  .badge.sent { background: var(--accent-tint); color: var(--accent); }
+  .badge.paid { background: var(--success-tint); color: var(--success); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:disabled { background: var(--surface-2); color: var(--ink-faint); cursor: not-allowed; }
+  .btn-outline { background: var(--surface); color: var(--primary); border: 1px solid var(--line); }
+  .btn-ghost { background: transparent; color: var(--ink-soft); }
+  .btn-danger-outline { background: var(--surface); color: var(--danger); border: 1px solid var(--danger-tint); }
+
+  .detail-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .back-btn { background: none; border: none; font-size: 20px; color: var(--ink); cursor: pointer; padding: 4px; line-height: 1; }
+  .detail-title { font-size: 17px; font-weight: 500; }
+  .detail-sub { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+
+  .checklist { display: flex; flex-direction: column; gap: 2px; }
+  .check-row { display: flex; align-items: center; gap: 10px; padding: 11px 4px; border-bottom: 1px solid var(--line); }
+  .check-row:last-child { border-bottom: none; }
+  .check-row input { width: 19px; height: 19px; accent-color: var(--primary); flex-shrink: 0; }
+  .check-row label { font-size: 14px; color: var(--ink); }
+
+  textarea {
+    width: 100%;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px;
+    resize: vertical;
+    min-height: 70px;
+  }
+  textarea:focus, .btn:focus-visible, .job-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .field-label { font-size: 12px; color: var(--ink-soft); margin: 16px 0 6px 2px; }
+
+  .photo-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .photo-thumb { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line); }
+  .add-photo-btn {
+    width: 72px; height: 72px; border-radius: 8px; border: 1.5px dashed var(--line);
+    background: var(--surface-2); color: var(--ink-soft); font-size: 22px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+
+  .geo-note { font-size: 12px; color: var(--ink-faint); margin-top: 10px; display: flex; align-items: center; gap: 5px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .dot.off { background: var(--ink-faint); }
+
+  .sticky-cta { position: sticky; bottom: 0; background: var(--bg); padding-top: 10px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); font-size: 13px; padding: 10px 18px;
+    border-radius: 20px; z-index: 50; opacity: 0; transition: opacity 0.25s;
+    pointer-events: none; max-width: 90%; text-align: center;
+  }
+  .toast.show { opacity: 1; }
+
+  .client-line { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
+  .photo-strip { display: flex; gap: 6px; margin-top: 10px; }
+  .photo-strip img { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; }
+
+  .invoice-box { background: var(--primary-tint); border-radius: var(--radius); padding: 14px; margin-top: 12px; }
+  .invoice-row { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0; color: var(--ink); }
+  .invoice-row.total { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 10px; font-weight: 500; }
+  .pay-toggle { display: flex; gap: 8px; margin: 10px 0; }
+  .pay-toggle button { flex: 1; padding: 8px; font-size: 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); cursor: pointer; }
+  .pay-toggle button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .empty { text-align: center; color: var(--ink-faint); font-size: 13px; padding: 40px 20px; }
+  .reset-link { text-align: center; margin-top: 24px; }
+  .reset-link button { background: none; border: none; color: var(--ink-faint); font-size: 12px; text-decoration: underline; cursor: pointer; }
+
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .login-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px 24px; width: 100%; max-width: 320px; }
+  .login-brand { text-align: center; margin-bottom: 20px; }
+  .login-brand .title { font-size: 18px; font-weight: 500; color: var(--ink); }
+  .login-brand .sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .login-field { margin-bottom: 12px; }
+  .login-field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
+  .login-field input {
+    width: 100%; font-family: var(--font); font-size: 15px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 11px 12px;
+  }
+  .login-field input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .login-error { color: var(--danger); font-size: 12px; margin: 4px 2px 12px; min-height: 14px; }
+  .user-chip { display: flex; align-items: center; gap: 10px; }
+  .user-chip .name { font-size: 13px; }
+  .logout-btn { background: rgba(255,255,255,0.14); border: none; color: #fff; font-size: 12px; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  var PRICES = {
+    poolClean: { label: "Pool clean", amount: 85 },
+    chemBalance: { label: "Chemical balance", amount: 45 },
+    equipCheck: { label: "Equipment check", amount: 60 },
+    pumpReplace: { label: "Pump replacement", amount: 350 }
+  };
+
+  var CHECKLISTS = {
+    poolClean: ["Skim & net debris", "Vacuum floor", "Brush walls & tile", "Empty skimmer baskets"],
+    chemBalance: ["Test pH & chlorine", "Add chemicals to target", "Log dosage used"],
+    equipCheck: ["Inspect pump & filter", "Check pressure gauge", "Backwash if needed"],
+    pumpReplace: ["Remove old pump", "Install new pump", "Test operation", "Confirm no leaks"]
+  };
+
+  var USERS = {
+    owner: { password: "test123", role: "manager", displayName: "Owner" },
+    manager: { password: "test123", role: "manager", displayName: "Manager" },
+    contractor1: { password: "test123", role: "contractor", displayName: "Contractor 1" },
+    customer1: { password: "test123", role: "client", displayName: "Maria Chen", clientId: "c1" },
+    customer2: { password: "test123", role: "client", displayName: "Robert Diaz", clientId: "c2" },
+    customer3: { password: "test123", role: "client", displayName: "Aiko Tanaka", clientId: "c3" },
+    customer4: { password: "test123", role: "client", displayName: "The Nguyen Family", clientId: "c4" }
+  };
+
+  var SEED_CLIENTS = [
+    { id: "c1", name: "Maria Chen", phone: "(925) 555-0142", email: "maria.chen@example.com", address: "142 Lakeview Dr" },
+    { id: "c2", name: "Robert Diaz", phone: "(925) 555-0188", email: "rdiaz@example.com", address: "88 Sunset Ave" },
+    { id: "c3", name: "Aiko Tanaka", phone: "(925) 555-0127", email: "aiko.t@example.com", address: "27 Harbor Ct" },
+    { id: "c4", name: "The Nguyen Family", phone: "(925) 555-0510", email: "nguyen.home@example.com", address: "510 Ridgecrest Way" }
+  ];
+
+  var SEED_JOBS = [
+    { id: "j1", clientId: "c1", serviceType: "poolClean", status: "pending" },
+    { id: "j2", clientId: "c2", serviceType: "chemBalance", status: "pending" },
+    { id: "j3", clientId: "c3", serviceType: "equipCheck", status: "pending" },
+    { id: "j4", clientId: "c4", serviceType: "pumpReplace", status: "pending" }
+  ];
+
+  function load(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+  function save(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+  }
+
+  var state = {
+    currentUser: load("po_current_user", null),
+    loginError: "",
+    role: load("po_role", "contractor"),
+    clients: load("po_clients", SEED_CLIENTS),
+    jobs: load("po_jobs", SEED_JOBS),
+    submissions: load("po_submissions", {}),
+    invoices: load("po_invoices", []),
+    view: "list",
+    activeJobId: null,
+    draft: null,
+    payMethod: "ach"
+  };
+
+  function persist() {
+    save("po_current_user", state.currentUser);
+    save("po_role", state.role);
+    save("po_clients", state.clients);
+    save("po_jobs", state.jobs);
+    save("po_submissions", state.submissions);
+    save("po_invoices", state.invoices);
+  }
+
+  function resetDemo() {
+    localStorage.removeItem("po_clients");
+    localStorage.removeItem("po_jobs");
+    localStorage.removeItem("po_submissions");
+    localStorage.removeItem("po_invoices");
+    state.clients = SEED_CLIENTS.map(function(c){ return Object.assign({}, c); });
+    state.jobs = SEED_JOBS.map(function(j){ return Object.assign({}, j); });
+    state.submissions = {};
+    state.invoices = [];
+    state.view = "list";
+    state.activeJobId = null;
+    render();
+  }
+
+  function attemptLogin(username, password) {
+    var key = (username || "").trim().toLowerCase();
+    var user = USERS[key];
+    if (!user || user.password !== password) {
+      state.loginError = "Incorrect username or password.";
+      render();
+      return;
+    }
+    state.currentUser = { username: key, role: user.role, displayName: user.displayName, clientId: user.clientId };
+    state.role = user.role;
+    state.loginError = "";
+    state.view = "list";
+    persist();
+    render();
+  }
+
+  function logout() {
+    state.currentUser = null;
+    state.loginError = "";
+    persist();
+    render();
+  }
+
+  function renderLogin() {
+    return '' +
+      '<div class="login-wrap"><div class="login-card">' +
+        '<div class="login-brand"><div class="title">PoolOps</div><div class="sub">Sign in to continue</div></div>' +
+        '<form id="loginForm">' +
+          '<div class="login-field"><label for="loginUser">Username</label>' +
+            '<input type="text" id="loginUser" autocapitalize="none" autocomplete="username" placeholder="owner, manager, contractor1, customer1–4"></div>' +
+          '<div class="login-field"><label for="loginPass">Password</label>' +
+            '<input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••"></div>' +
+          '<div class="login-error">' + (state.loginError || "") + '</div>' +
+          '<button type="submit" class="btn btn-primary">Log in</button>' +
+        '</form>' +
+      '</div></div>';
+  }
+
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 2200);
+  }
+
+  function clientById(id) {
+    for (var i = 0; i < state.clients.length; i++) if (state.clients[i].id === id) return state.clients[i];
+    return null;
+  }
+  function jobById(id) {
+    for (var i = 0; i < state.jobs.length; i++) if (state.jobs[i].id === id) return state.jobs[i];
+    return null;
+  }
+
+  function resizeImage(dataUrl, cb) {
+    var img = new Image();
+    img.onload = function () {
+      var maxW = 900;
+      var scale = Math.min(1, maxW / img.width);
+      var canvas = document.createElement("canvas");
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      cb(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    img.src = dataUrl;
+  }
+
+  function openJob(jobId) {
+    var existing = state.submissions[jobId];
+    state.activeJobId = jobId;
+    state.draft = existing ? JSON.parse(JSON.stringify(existing)) : {
+      checklist: {},
+      notes: "",
+      photos: [],
+      geo: null,
+      timestamp: null
+    };
+    state.view = "detail";
+    render();
+  }
+
+  function submitJob() {
+    var job = jobById(state.activeJobId);
+    var draft = state.draft;
+    draft.timestamp = new Date().toISOString();
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          draft.geo = { lat: pos.coords.latitude.toFixed(5), lng: pos.coords.longitude.toFixed(5) };
+          finishSubmit(job, draft);
+        },
+        function () { draft.geo = null; finishSubmit(job, draft); },
+        { timeout: 4000 }
+      );
+    } else {
+      finishSubmit(job, draft);
+    }
+  }
+
+  function finishSubmit(job, draft) {
+    state.submissions[job.id] = draft;
+    job.status = "submitted";
+    persist();
+    state.view = "list";
+    render();
+    toast("Job submitted — sent to review");
+  }
+
+  function approveJob(jobId) {
+    var job = jobById(jobId);
+    job.status = "approved";
+    persist();
+    render();
+    toast("Approved and added to billing");
+  }
+
+  function sendInvoices() {
+    var approved = state.jobs.filter(function (j) { return j.status === "approved"; });
+    if (!approved.length) return;
+
+    var byClient = {};
+    approved.forEach(function (job) {
+      if (!byClient[job.clientId]) byClient[job.clientId] = [];
+      byClient[job.clientId].push(job.id);
+    });
+
+    var count = 0;
+    Object.keys(byClient).forEach(function (clientId) {
+      var jobIds = byClient[clientId];
+      var subtotal = computeSubtotal(jobIds);
+      var surcharge = state.payMethod === "card" ? Math.round(subtotal * 0.03 * 100) / 100 : 0;
+      var total = Math.round((subtotal + surcharge) * 100) / 100;
+      state.invoices.push({
+        id: "inv_" + Date.now() + "_" + clientId,
+        clientId: clientId,
+        jobIds: jobIds,
+        payMethod: state.payMethod,
+        subtotal: subtotal,
+        surcharge: surcharge,
+        total: total,
+        sentAt: new Date().toISOString(),
+        status: "sent"
+      });
+      jobIds.forEach(function (id) { jobById(id).status = "invoiced"; });
+      count++;
+    });
+
+    persist();
+    render();
+    toast(count > 1 ? "Invoices sent to " + count + " clients" : "Invoice sent to client");
+  }
+
+  function markInvoicePaid(invoiceId) {
+    var inv = state.invoices.find(function (i) { return i.id === invoiceId; });
+    if (!inv) return;
+    inv.status = "paid";
+    inv.paidAt = new Date().toISOString();
+    persist();
+    render();
+    toast("Marked as paid");
+  }
+
+  function renderTopbar() {
+    var user = state.currentUser;
+    return '' +
+      '<header class="topbar">' +
+        '<div class="brand">PoolOps<small>Field capture &amp; billing — demo</small></div>' +
+        '<div class="user-chip"><span class="name">' + (user ? user.displayName : "") + '</span><button class="logout-btn" id="logoutBtn">Log out</button></div>' +
+      '</header>';
+  }
+
+  function renderContractorList() {
+    var html = '<div class="section-label">Today\u2019s jobs</div>';
+    if (!state.jobs.length) html += '<div class="empty">No jobs assigned today.</div>';
+    state.jobs.forEach(function (job) {
+      var svc = PRICES[job.serviceType];
+      html += '' +
+        '<div class="card job-card" data-open="' + job.id + '" tabindex="0">' +
+          '<div class="job-main">' +
+            '<div class="job-address">' + job.address_display + '</div>' +
+            '<div class="job-service">' + svc.label + '</div>' +
+          '</div>' +
+          '<div class="badge ' + job.status + '">' + (job.status === "pending" ? "Not started" : job.status === "submitted" ? "Submitted" : job.status === "approved" ? "Approved" : "Invoiced") + '</div>' +
+        '</div>';
+    });
+    html += '<div class="reset-link"><button id="resetBtn">Reset demo data</button></div>';
+    return html;
+  }
+
+  function renderJobDetail() {
+    var job = jobById(state.activeJobId);
+    var client = clientById(job.clientId);
+    var svc = PRICES[job.serviceType];
+    var checklist = CHECKLISTS[job.serviceType];
+    var draft = state.draft;
+    var readonly = job.status !== "pending";
+
+    var html = '<div class="detail-header">' +
+      '<button class="back-btn" id="backBtn" aria-label="Back">←</button>' +
+      '<div><div class="detail-title">' + svc.label + '</div><div class="detail-sub">' + client.address + '</div></div>' +
+    '</div>';
+
+    html += '<div class="card"><div class="checklist">';
+    checklist.forEach(function (item, i) {
+      var checked = draft.checklist[i] ? "checked" : "";
+      html += '<div class="check-row">' +
+        '<input type="checkbox" id="chk' + i + '" data-idx="' + i + '" ' + checked + (readonly ? " disabled" : "") + '>' +
+        '<label for="chk' + i + '">' + item + '</label>' +
+      '</div>';
+    });
+    html += '</div></div>';
+
+    html += '<div class="field-label">Notes</div>';
+    html += '<textarea id="notesField" placeholder="Anything the office should know..." ' + (readonly ? "disabled" : "") + '>' + (draft.notes || "") + '</textarea>';
+
+    html += '<div class="field-label">Photos</div><div class="photo-row" id="photoRow">';
+    draft.photos.forEach(function (p) {
+      html += '<img class="photo-thumb" src="' + p + '">';
+    });
+    if (!readonly) {
+      html += '<button class="add-photo-btn" id="addPhotoBtn" aria-label="Add photo">+</button>';
+      html += '<input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none">';
+    }
+    html += '</div>';
+
+    if (draft.timestamp) {
+      html += '<div class="geo-note"><span class="dot"></span>Submitted ' + new Date(draft.timestamp).toLocaleString() + (draft.geo ? " · GPS " + draft.geo.lat + ", " + draft.geo.lng : " · location unavailable") + '</div>';
+    } else {
+      html += '<div class="geo-note"><span class="dot off"></span>Time &amp; location stamp added automatically on submit</div>';
+    }
+
+    if (!readonly) {
+      html += '<div class="sticky-cta"><button class="btn btn-primary" id="submitBtn" ' + (draft.photos.length === 0 ? "disabled" : "") + '>Submit job</button></div>';
+      if (draft.photos.length === 0) html += '<div class="detail-sub" style="text-align:center;margin-top:8px;">Add at least one photo to submit</div>';
+    } else {
+      html += '<div class="sticky-cta"><button class="btn btn-outline" disabled>' + (job.status === "submitted" ? "Waiting for manager review" : "Approved") + '</button></div>';
+    }
+
+    return html;
+  }
+
+  function computeSubtotal(jobIds) {
+    var sum = 0;
+    jobIds.forEach(function (id) {
+      var job = jobById(id);
+      sum += PRICES[job.serviceType].amount;
+    });
+    return sum;
+  }
+
+  function renderManagerList() {
+    var submitted = state.jobs.filter(function (j) { return j.status === "submitted"; });
+    var approved = state.jobs.filter(function (j) { return j.status === "approved"; });
+
+    var html = '<div class="section-label">Pending review</div>';
+    if (!submitted.length) html += '<div class="empty">Nothing waiting on you right now.</div>';
+    submitted.forEach(function (job) {
+      var client = clientById(job.clientId);
+      var svc = PRICES[job.serviceType];
+      var sub = state.submissions[job.id];
+      html += '<div class="card">' +
+        '<div class="job-address">' + client.name + '</div>' +
+        '<div class="client-line"><span>' + client.address + '</span><span>' + svc.label + '</span></div>' +
+        '<div class="client-line"><span>' + client.phone + '</span><span>$' + svc.amount + '</span></div>';
+      if (sub && sub.notes) html += '<div class="detail-sub" style="margin-top:8px;">"' + sub.notes + '"</div>';
+      if (sub && sub.photos.length) {
+        html += '<div class="photo-strip">';
+        sub.photos.forEach(function (p) { html += '<img src="' + p + '">'; });
+        html += '</div>';
+      }
+      html += '<div style="margin-top:12px;"><button class="btn btn-outline" data-approve="' + job.id + '">Approve for billing</button></div>' +
+      '</div>';
+    });
+
+    html += '<div class="section-label" style="margin-top:24px;">Ready to bill</div>';
+    if (!approved.length) {
+      html += '<div class="empty">Approve a job above to add it here.</div>';
+    } else {
+      var subtotal = computeSubtotal(approved.map(function (j) { return j.id; }));
+      var surcharge = state.payMethod === "card" ? Math.round(subtotal * 0.03 * 100) / 100 : 0;
+      var total = subtotal + surcharge;
+
+      html += '<div class="card">';
+      approved.forEach(function (job) {
+        var client = clientById(job.clientId);
+        var svc = PRICES[job.serviceType];
+        html += '<div class="invoice-row"><span>' + client.name + ' — ' + svc.label + '</span><span>$' + svc.amount.toFixed(2) + '</span></div>';
+      });
+      html += '<div class="invoice-box">' +
+        '<div class="pay-toggle">' +
+          '<button data-pay="ach" class="' + (state.payMethod === "ach" ? "active" : "") + '">Bank transfer (ACH)</button>' +
+          '<button data-pay="card" class="' + (state.payMethod === "card" ? "active" : "") + '">Card</button>' +
+        '</div>' +
+        '<div class="invoice-row"><span>Subtotal</span><span>$' + subtotal.toFixed(2) + '</span></div>' +
+        '<div class="invoice-row"><span>Card surcharge (3%, calculated once)</span><span>' + (surcharge ? "$" + surcharge.toFixed(2) : "—") + '</span></div>' +
+        '<div class="invoice-row total"><span>Total due</span><span>$' + total.toFixed(2) + '</span></div>' +
+      '</div>' +
+      '<div style="margin-top:12px;"><button class="btn btn-primary" id="sendInvoiceBtn">Send invoice</button></div>' +
+      '</div>';
+    }
+
+    html += renderCompletedSection();
+
+    html += '<div class="reset-link"><button id="resetBtn">Reset demo data</button></div>';
+    return html;
+  }
+
+  function renderCompletedSection() {
+    var sorted = state.invoices.slice().sort(function (a, b) { return new Date(b.sentAt) - new Date(a.sentAt); });
+    var html = '<div class="section-label" style="margin-top:24px;">Completed jobs</div>';
+    if (!sorted.length) {
+      html += '<div class="empty">Nothing invoiced yet.</div>';
+      return html;
+    }
+    sorted.forEach(function (inv) {
+      var client = clientById(inv.clientId);
+      html += '<div class="card">' +
+        '<div class="job-address">' + client.name + '</div>' +
+        '<div class="client-line"><span>' + client.address + '</span><span>$' + inv.total.toFixed(2) + '</span></div>';
+      inv.jobIds.forEach(function (jobId) {
+        var job = jobById(jobId);
+        var svc = PRICES[job.serviceType];
+        html += '<div class="client-line"><span>' + svc.label + '</span><span>' + new Date(inv.sentAt).toLocaleDateString() + '</span></div>';
+      });
+      html += '<div style="margin-top:10px; display:flex; align-items:center; justify-content:space-between;">' +
+        '<span class="badge ' + inv.status + '">' + (inv.status === "paid" ? "Paid " + new Date(inv.paidAt).toLocaleDateString() : "Sent, awaiting payment") + '</span>';
+      if (inv.status !== "paid") {
+        html += '<button class="btn btn-outline" style="width:auto;padding:8px 14px;" data-pay-invoice="' + inv.id + '">Mark as paid</button>';
+      }
+      html += '</div></div>';
+    });
+    return html;
+  }
+
+  function renderClientView() {
+    var clientId = state.currentUser.clientId;
+    var myInvoices = state.invoices
+      .filter(function (i) { return i.clientId === clientId; })
+      .sort(function (a, b) { return new Date(b.sentAt) - new Date(a.sentAt); });
+
+    var html = '<div class="section-label">Your bills &amp; photos</div>';
+    if (!myInvoices.length) {
+      html += '<div class="empty">No invoices yet — check back after your next service.</div>';
+      return html;
+    }
+
+    myInvoices.forEach(function (inv) {
+      html += '<div class="card">';
+      html += '<div class="job-address">' + new Date(inv.sentAt).toLocaleDateString() + '</div>';
+      inv.jobIds.forEach(function (jobId) {
+        var job = jobById(jobId);
+        var svc = PRICES[job.serviceType];
+        html += '<div class="invoice-row"><span>' + svc.label + '</span><span>$' + svc.amount.toFixed(2) + '</span></div>';
+        var sub = state.submissions[jobId];
+        if (sub && sub.photos.length) {
+          html += '<div class="photo-strip">';
+          sub.photos.forEach(function (p) { html += '<img src="' + p + '">'; });
+          html += '</div>';
+        }
+      });
+      html += '<div class="invoice-box">' +
+        '<div class="invoice-row"><span>Subtotal</span><span>$' + inv.subtotal.toFixed(2) + '</span></div>' +
+        '<div class="invoice-row"><span>' + (inv.payMethod === "card" ? "Card surcharge (3%)" : "Bank transfer — no surcharge") + '</span><span>' + (inv.surcharge ? "$" + inv.surcharge.toFixed(2) : "—") + '</span></div>' +
+        '<div class="invoice-row total"><span>Total</span><span>$' + inv.total.toFixed(2) + '</span></div>' +
+      '</div>';
+      if (inv.status === "paid") {
+        html += '<div style="margin-top:12px;"><span class="badge paid">Paid ' + new Date(inv.paidAt).toLocaleDateString() + '</span></div>';
+      } else {
+        html += '<div style="margin-top:12px;"><button class="btn btn-primary" data-pay-invoice="' + inv.id + '">Pay ' + (inv.payMethod === "card" ? "by card" : "by bank transfer") + '</button></div>';
+      }
+      html += '</div>';
+    });
+
+    return html;
+  }
+
+  function render() {
+    var app = document.getElementById("app");
+
+    if (!state.currentUser) {
+      app.innerHTML = renderLogin();
+      bind();
+      return;
+    }
+
+    var body = "";
+
+    if (state.role === "contractor") {
+      body = state.view === "detail" ? renderJobDetail() : renderContractorList();
+    } else if (state.role === "client") {
+      body = renderClientView();
+    } else {
+      body = renderManagerList();
+    }
+
+    app.innerHTML = renderTopbar() + "<main>" + body + "</main>";
+    bind();
+  }
+
+  function bind() {
+    var loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+      loginForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var u = document.getElementById("loginUser").value;
+        var p = document.getElementById("loginPass").value;
+        attemptLogin(u, p);
+      });
+    }
+
+    var logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
+    var resetBtn = document.getElementById("resetBtn");
+    if (resetBtn) resetBtn.addEventListener("click", resetDemo);
+
+    document.querySelectorAll("[data-open]").forEach(function (el) {
+      el.addEventListener("click", function () { openJob(el.getAttribute("data-open")); });
+      el.addEventListener("keydown", function (e) { if (e.key === "Enter") openJob(el.getAttribute("data-open")); });
+    });
+
+    var backBtn = document.getElementById("backBtn");
+    if (backBtn) backBtn.addEventListener("click", function () { state.view = "list"; render(); });
+
+    document.querySelectorAll("[data-idx]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        state.draft.checklist[cb.getAttribute("data-idx")] = cb.checked;
+      });
+    });
+
+    var notesField = document.getElementById("notesField");
+    if (notesField) notesField.addEventListener("input", function () { state.draft.notes = notesField.value; });
+
+    var addPhotoBtn = document.getElementById("addPhotoBtn");
+    var photoInput = document.getElementById("photoInput");
+    if (addPhotoBtn && photoInput) {
+      addPhotoBtn.addEventListener("click", function () { photoInput.click(); });
+      photoInput.addEventListener("change", function () {
+        var file = photoInput.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          resizeImage(reader.result, function (resized) {
+            state.draft.photos.push(resized);
+            render();
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    var submitBtn = document.getElementById("submitBtn");
+    if (submitBtn) submitBtn.addEventListener("click", submitJob);
+
+    document.querySelectorAll("[data-approve]").forEach(function (btn) {
+      btn.addEventListener("click", function () { approveJob(btn.getAttribute("data-approve")); });
+    });
+
+    var sendInvoiceBtn = document.getElementById("sendInvoiceBtn");
+    if (sendInvoiceBtn) sendInvoiceBtn.addEventListener("click", sendInvoices);
+
+    document.querySelectorAll("[data-pay-invoice]").forEach(function (btn) {
+      btn.addEventListener("click", function () { markInvoicePaid(btn.getAttribute("data-pay-invoice")); });
+    });
+
+    document.querySelectorAll("[data-pay]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.payMethod = btn.getAttribute("data-pay");
+        render();
+      });
+    });
+  }
+
+  // attach display address (contractor never sees client name/phone/email)
+  state.jobs.forEach(function (job) {
+    var c = clientById(job.clientId);
+    job.address_display = c ? c.address : "";
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
