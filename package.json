@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "stripe": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "2.118.0",
+    "stripe": "23.0.0"
   }
 }
