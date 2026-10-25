@@ -1,8 +1,8 @@
 const Stripe = require("stripe");
-const { createClient } = require("@supabase/supabase-js");
+const supabase = require("./_supabase");
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const PHOTO_KEEP_DAYS = 30;
 
 module.exports.config = { api: { bodyParser: false } };
 
@@ -32,10 +32,19 @@ module.exports = async (req, res) => {
     if (session.payment_status === "paid") {
       var invoiceId = session.metadata && session.metadata.invoice_id;
       if (invoiceId) {
-        await supabase.from("invoices").update({
+        var paidAt = new Date();
+        var result = await supabase.from("invoices").update({
           status: "paid",
-          paid_at: new Date().toISOString()
+          paid_at: paidAt.toISOString(),
+          // Job photos are deleted this long after payment by api/cleanup-photos.js.
+          photos_expire_at: new Date(paidAt.getTime() + PHOTO_KEEP_DAYS * 86400000).toISOString()
         }).eq("id", invoiceId);
+        if (result.error) {
+          // A non-2xx response makes Stripe retry the webhook later.
+          console.error("Couldn't mark invoice paid", invoiceId, result.error);
+          res.status(500).json({ error: "Database update failed" });
+          return;
+        }
       }
     }
   }
