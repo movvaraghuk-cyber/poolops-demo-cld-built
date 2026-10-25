@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
 
     var session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: method === "card" ? ["card"] : ["us_bank_account"],
+      allowed_payment_method_types: method === "card" ? ["card"] : ["us_bank_account"],
       customer_email: client && client.email ? client.email : undefined,
       line_items: lineItems,
       metadata: { invoice_id: invoice.id },
