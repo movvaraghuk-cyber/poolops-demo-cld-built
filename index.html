@@ -64,7 +64,10 @@
 
   /* ---------- frame ---------- */
   .topbar { position: sticky; top: 0; z-index: 20; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
-  .topbar .brand { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+  .topbar .brand { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; background: none; border: 0; padding: 4px 0; color: inherit; font-family: inherit; cursor: pointer; }
+  .tabnav { display: flex; gap: 8px; margin: 4px 0 16px; }
+  .tabnav button { flex: 1; padding: 10px 12px; border-radius: 999px; border: 1px solid var(--line, #dcd8cc); background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+  .tabnav button[aria-pressed="true"] { background: var(--ink, #1e2124); color: #fff; border-color: transparent; }
   .topbar .who { display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--soft); }
   .chipbtn { border: 0; background: var(--step); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; white-space: nowrap; }
   @media (max-width: 480px) { .topbar .who .name { display: none; } }
@@ -591,7 +594,7 @@
     var user = state.currentUser;
     return '' +
       '<header class="topbar">' +
-        '<div class="brand">ServiceOps</div>' +
+        '<button class="brand" id="homeBtn" type="button">ServiceOps</button>' +
         '<div class="who"><span class="name">' + esc(user ? user.displayName : "") + '</span>' +
           '<button class="chipbtn" id="refreshBtn">Refresh</button>' +
           '<button class="chipbtn" id="logoutBtn">Log out</button></div>' +
@@ -1283,11 +1286,17 @@
     var ongoing = state.jobs.filter(function (j) { return j.clientId === clientId && (j.status === "pending" || j.status === "submitted" || j.status === "approved"); });
     var mine = state.invoices.filter(function (i) { return i.clientId === clientId; })
       .sort(function (a, b) { return new Date(b.sentAt) - new Date(a.sentAt); });
-    var html = '<h1 class="page-title">Your bills</h1><p class="page-sub">Photos of each visit and what you owe.</p>';
-    if (!mine.length) html += '<div class="empty">No bills yet. They show up here after your next service.</div>';
-    mine.forEach(function (inv) { html += renderBill(inv, true); });
-    if (ongoing.length) {
-      html += '<div class="section-title">Coming up</div>';
+    var tab = state.clientTab === "coming" ? "coming" : "bills";
+    var html = '<nav class="tabnav" aria-label="Sections">' +
+      '<button type="button" data-tab="bills" aria-pressed="' + (tab === "bills") + '">Bills (' + mine.length + ')</button>' +
+      '<button type="button" data-tab="coming" aria-pressed="' + (tab === "coming") + '">Coming up (' + ongoing.length + ')</button></nav>';
+    if (tab === "bills") {
+      html += '<h1 class="page-title">Your bills</h1><p class="page-sub">Photos of each visit and what you owe.</p>';
+      if (!mine.length) html += '<div class="empty">No bills yet. They show up here after your next service.</div>';
+      mine.forEach(function (inv) { html += renderBill(inv, true); });
+    } else {
+      html += '<h1 class="page-title">Coming up</h1><p class="page-sub">Visits scheduled or being checked.</p>';
+      if (!ongoing.length) html += '<div class="empty">Nothing scheduled right now.</div>';
       ongoing.forEach(function (j) {
         var label = j.status === "pending" ? "Scheduled" : j.status === "submitted" ? "Done, being checked" : "Done, bill coming";
         html += '<div class="jobrow" style="cursor:default"><span class="txt"><b>' + esc(serviceLabel(j)) + '</b><span class="line">' + esc(contractorLabel(j.assignedTo)) + '</span></span><span class="status ' + esc(j.status) + '">' + label + '</span></div>';
@@ -1388,7 +1397,16 @@
     });
   }
 
+  function goHome() {
+    state.view = "list";
+    state.clientTab = "bills";
+    render();
+    window.scrollTo(0, 0);
+  }
+
   function bind() {
+    on("homeBtn", "click", goHome);
+    onAll("data-tab", function (t) { state.clientTab = t; render(); window.scrollTo(0, 0); });
     on("loginForm", "submit", function (e) {
       e.preventDefault();
       attemptLogin(document.getElementById("loginUser").value, document.getElementById("loginPass").value);
