@@ -25,11 +25,12 @@
     --wait-tint: #F7E8D6;
     --danger: #B23A2E;
     --danger-tint: #F8E4E1;
+    --line: #C9D4DB;
     --night: #0B1720;
     --font: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  :root:not([data-theme="light"]) {
-    @media (prefers-color-scheme: dark) {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
       --bg: #0B1218;
       --step: #16212A;
       --step-2: #1E2C37;
@@ -45,13 +46,14 @@
       --wait-tint: #2E2416;
       --danger: #E48579;
       --danger-tint: #36201D;
+      --line: #33444F;
       --night: #05090C;
     }
   }
   :root[data-theme="dark"] {
     --bg: #0B1218; --step: #16212A; --step-2: #1E2C37; --ink: #E8EEF2; --soft: #A9B6C0; --faint: #74828D;
     --water: #1F7BB8; --water-strong: #3A92CC; --water-tint: #13293A; --ok: #7BC69A; --ok-tint: #17291F;
-    --wait: #E3A15C; --wait-tint: #2E2416; --danger: #E48579; --danger-tint: #36201D; --night: #05090C;
+    --wait: #E3A15C; --wait-tint: #2E2416; --danger: #E48579; --danger-tint: #36201D; --line: #33444F; --night: #05090C;
   }
 
   * { box-sizing: border-box; }
@@ -66,8 +68,8 @@
   .topbar { position: sticky; top: 0; z-index: 20; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
   .topbar .brand { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; background: none; border: 0; padding: 4px 0; color: inherit; font-family: inherit; cursor: pointer; }
   .tabnav { display: flex; gap: 8px; margin: 4px 0 16px; }
-  .tabnav button { flex: 1; padding: 10px 12px; border-radius: 999px; border: 1px solid var(--line, #dcd8cc); background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
-  .tabnav button[aria-pressed="true"] { background: var(--ink, #1e2124); color: #fff; border-color: transparent; }
+  .tabnav button { flex: 1; padding: 10px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+  .tabnav button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: transparent; }
   .topbar .who { display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--soft); }
   .chipbtn { border: 0; background: var(--step); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; white-space: nowrap; }
   @media (max-width: 480px) { .topbar .who .name { display: none; } }
@@ -129,9 +131,9 @@
   .film .none { color: var(--soft); font-size: 15px; padding: 28px 0; }
   .note-box { background: var(--wait-tint); color: var(--ink); border-radius: 16px; padding: 12px 14px; margin: 4px 0 8px; }
   .check { display: flex; align-items: center; gap: 14px; width: 100%; border: 0; background: none; padding: 14px 4px; min-height: 60px; font-size: 17px; text-align: left; }
-  .check .tick { width: 30px; height: 30px; border-radius: 9px; background: var(--step); flex-shrink: 0; display: grid; place-items: center; transition: background .15s ease, transform .15s ease; }
+  .check .tick { width: 30px; height: 30px; border-radius: 9px; background: var(--step); box-shadow: inset 0 0 0 2px var(--line); flex-shrink: 0; display: grid; place-items: center; transition: background .15s ease, transform .15s ease; }
   .check .tick svg { width: 18px; height: 18px; stroke: #fff; opacity: 0; }
-  .check[aria-pressed="true"] .tick { background: var(--water); }
+  .check[aria-pressed="true"] .tick { background: var(--water); box-shadow: none; }
   .check[aria-pressed="true"] .tick svg { opacity: 1; }
   .check:active .tick { transform: scale(.9); }
   .check[disabled] { cursor: default; }
@@ -165,9 +167,9 @@
   .panel b.big { display: block; font-size: 22px; letter-spacing: -0.015em; line-height: 1.15; }
   .panel .contact { color: var(--soft); font-size: 15px; margin: 2px 0 10px; overflow-wrap: anywhere; }
   .billjob { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: var(--bg); border-radius: 14px; padding: 12px; margin-bottom: 6px; text-align: left; font-size: 16px; }
-  .billjob .tick { width: 26px; height: 26px; border-radius: 8px; background: var(--step-2); flex-shrink: 0; display: grid; place-items: center; }
+  .billjob .tick { width: 26px; height: 26px; border-radius: 8px; background: var(--step-2); box-shadow: inset 0 0 0 2px var(--line); flex-shrink: 0; display: grid; place-items: center; }
   .billjob .tick svg { width: 16px; height: 16px; stroke: #fff; opacity: 0; }
-  .billjob[aria-pressed="true"] .tick { background: var(--water); }
+  .billjob[aria-pressed="true"] .tick { background: var(--water); box-shadow: none; }
   .billjob[aria-pressed="true"] .tick svg { opacity: 1; }
   .billjob span.grow { flex: 1; min-width: 0; }
   .via { display: flex; gap: 6px; margin: 10px 0 12px; flex-wrap: wrap; }
