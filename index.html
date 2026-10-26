@@ -288,15 +288,9 @@
     poolClosing: ["Balance chemicals for winter", "Lower water level as needed", "Blow out lines", "Install cover"]
   };
 
-  var USERS = {
-    owner: { password: "test123", role: "manager", displayName: "Owner" },
-    manager: { password: "test123", role: "manager", displayName: "Manager" },
-    contractor1: { password: "test123", role: "contractor", displayName: "Contractor 1" },
-    customer1: { password: "test123", role: "client", displayName: "Maria Chen", clientId: "c1" },
-    customer2: { password: "test123", role: "client", displayName: "Robert Diaz", clientId: "c2" },
-    customer3: { password: "test123", role: "client", displayName: "Aiko Tanaka", clientId: "c3" },
-    customer4: { password: "test123", role: "client", displayName: "The Nguyen Family", clientId: "c4" }
-  };
+  // Logins are Supabase accounts (see scripts/create-users.js). Typing "owner" signs in as
+  // owner@LOGIN_EMAIL_DOMAIN; typing a full email uses it as is.
+  var LOGIN_EMAIL_DOMAIN = "serviceops.test";
 
   var SEED_CLIENTS = [
     { id: "c1", name: "Maria Chen", phone: "(925) 555-0142", email: "maria.chen@example.com", address: "142 Lakeview Dr", preferred_contact: "sms" },
@@ -330,9 +324,10 @@
   var params = new URLSearchParams(window.location.search);
 
   var state = {
-    currentUser: load("po_current_user", null),
+    currentUser: null, // { username, role, displayName, clientId } from the profiles table
     loginError: "",
-    role: load("po_role", "contractor"),
+    role: null,
+    contractors: {},   // username -> display name
     clients: [],
     jobs: [],
     submissions: {},
@@ -349,10 +344,9 @@
     payMethod: {}      // invoiceId -> "bank" | "card"
   };
 
-  function persistSession() {
-    save("po_current_user", state.currentUser);
-    save("po_role", state.role);
-  }
+  // Left over from the old hardcoded logins.
+  forget("po_current_user");
+  forget("po_role");
 
   // ---------- small helpers ----------
 
@@ -426,8 +420,7 @@
   function serviceLabel(job) { return PRICES[job.serviceType] ? PRICES[job.serviceType].label : job.serviceType; }
   function contractorLabel(username) {
     if (!username) return "Unassigned";
-    var u = USERS[username];
-    return u ? u.displayName : username;
+    return state.contractors[username] || username;
   }
   function photosOf(jobId) {
     var sub = state.submissions[jobId];
@@ -481,19 +474,23 @@
     });
   }
 
+  // The database only returns what this login may see (row level security), so each role loads differently.
   function loadAll() {
     state.loading = true;
     state.loadError = "";
     render();
+    if (state.role === "contractor") return loadContractor();
     return Promise.all([
       dbq(sb.from("clients").select("*")),
       dbq(sb.from("jobs").select("*")),
       dbq(sb.from("job_submissions").select("*")),
-      dbq(sb.from("invoices").select("*"))
+      dbq(sb.from("invoices").select("*")),
+      dbq(sb.rpc("contractor_names"))
     ]).then(function (results) {
-      if (results[0].data.length === 0) {
+      if (results[0].data.length === 0 && state.role === "manager") {
         return seedDatabase().then(loadAll);
       }
+      state.contractors = results[4].data || {};
       state.clients = results[0].data;
       state.jobs = results[1].data.map(jobFromRow);
       var subsObj = {};
@@ -509,27 +506,46 @@
     });
   }
 
+  // Contractors never receive client names or contact info: only the address of each job.
+  function loadContractor() {
+    return Promise.all([
+      dbq(sb.rpc("contractor_jobs")),
+      dbq(sb.from("job_submissions").select("*"))
+    ]).then(function (results) {
+      var rows = results[0].data || [];
+      var addresses = {};
+      rows.forEach(function (r) { addresses[r.client_id] = r.address; });
+      state.clients = Object.keys(addresses).map(function (id) { return { id: id, address: addresses[id] }; });
+      state.jobs = rows.map(jobFromRow);
+      var subsObj = {};
+      results[1].data.forEach(function (r) { subsObj[r.job_id] = submissionFromRow(r); });
+      state.submissions = subsObj;
+      state.invoices = [];
+      state.loading = false;
+      render();
+    }).catch(function (err) {
+      state.loading = false;
+      state.loadError = (err && err.message) ? err.message : "Couldn't reach the database.";
+      render();
+    });
+  }
+
   // The pay page a client reaches from a text or email. No login: the token in the link is the key.
   function loadPayPage() {
     state.loading = true;
     state.loadError = "";
     render();
-    return dbq(sb.from("invoices").select("*").eq("pay_token", state.payToken).maybeSingle()).then(function (res) {
-      if (!res.data) throw new Error("This bill link isn't valid. Ask the business to send it again.");
-      var inv = invoiceFromRow(res.data);
-      return Promise.all([
-        dbq(sb.from("clients").select("*").eq("id", inv.clientId)),
-        dbq(sb.from("jobs").select("*").in("id", inv.jobIds)),
-        dbq(sb.from("job_submissions").select("*").in("job_id", inv.jobIds))
-      ]).then(function (results) {
-        state.invoices = [inv];
-        state.clients = results[0].data;
-        state.jobs = results[1].data.map(jobFromRow);
-        state.submissions = {};
-        results[2].data.forEach(function (r) { state.submissions[r.job_id] = submissionFromRow(r); });
-        state.loading = false;
-        render();
-      });
+    return dbq(sb.rpc("invoice_by_token", { p_token: state.payToken })).then(function (res) {
+      var bill = res.data;
+      if (!bill) throw new Error("This bill link isn't valid. Ask the business to send it again.");
+      state.invoices = [invoiceFromRow(bill.invoice)];
+      state.clients = [bill.client];
+      state.jobs = bill.jobs.map(jobFromRow);
+      state.contractors = bill.contractors || {};
+      state.submissions = {};
+      bill.submissions.forEach(function (r) { state.submissions[r.job_id] = submissionFromRow(r); });
+      state.loading = false;
+      render();
     }).catch(function (err) {
       state.loading = false;
       state.loadError = err && err.message ? err.message : "Couldn't load this bill.";
@@ -554,27 +570,54 @@
 
   // ---------- login ----------
 
-  function attemptLogin(username, password) {
-    var key = (username || "").trim().toLowerCase();
-    var user = USERS[key];
-    if (!user || user.password !== password) {
-      state.loginError = "Incorrect username or password.";
-      render();
-      return;
-    }
-    state.currentUser = { username: key, role: user.role, displayName: user.displayName, clientId: user.clientId };
-    state.role = user.role;
-    state.loginError = "";
-    state.view = "list";
-    persistSession();
-    loadAll();
+  function loginEmail(username) {
+    var name = (username || "").trim().toLowerCase();
+    return name.indexOf("@") === -1 ? name + "@" + LOGIN_EMAIL_DOMAIN : name;
+  }
+
+  function showLoginError(msg) {
+    state.currentUser = null;
+    state.loginError = msg;
+    state.loading = false;
+    render();
+  }
+
+  // Reads who this login is (role, name, which client) from the profiles table.
+  function startSession(user) {
+    return dbq(sb.from("profiles").select("*").eq("id", user.id).maybeSingle()).then(function (res) {
+      var p = res.data;
+      if (!p) {
+        sb.auth.signOut();
+        return showLoginError("This login isn't set up yet. Ask the office to add it.");
+      }
+      state.currentUser = { username: p.username, role: p.role, displayName: p.display_name, clientId: p.client_id };
+      state.role = p.role;
+      state.loginError = "";
+      state.view = "list";
+      return loadAll();
+    });
+  }
+
+  function attemptLogin(username, password, btn) {
+    withBusy(btn, "Logging in…", function () {
+      return sb.auth.signInWithPassword({ email: loginEmail(username), password: password }).then(function (res) {
+        if (res.error) {
+          var bad = /invalid/i.test(res.error.message || "");
+          return showLoginError(bad ? "Incorrect username or password." : "Couldn't log in: " + res.error.message);
+        }
+        return startSession(res.data.user);
+      });
+    });
   }
 
   function logout() {
-    state.currentUser = null;
-    state.loginError = "";
-    persistSession();
-    render();
+    sb.auth.signOut().finally(function () {
+      state.currentUser = null;
+      state.role = null;
+      state.loginError = "";
+      state.clients = []; state.jobs = []; state.submissions = {}; state.invoices = []; state.contractors = {};
+      render();
+    });
   }
 
   function renderLogin() {
@@ -583,11 +626,11 @@
         '<h1>ServiceOps</h1><p class="muted" style="margin:0 0 24px;">Sign in to continue</p>' +
         '<form id="loginForm">' +
           '<div class="field"><label for="loginUser">Username</label>' +
-            '<input type="text" id="loginUser" autocapitalize="none" autocomplete="username" placeholder="owner, contractor1, customer1–4"></div>' +
+            '<input type="text" id="loginUser" autocapitalize="none" autocomplete="username" placeholder="Username or email"></div>' +
           '<div class="field"><label for="loginPass">Password</label>' +
             '<input type="password" id="loginPass" autocomplete="current-password"></div>' +
           '<div class="login-error">' + esc(state.loginError) + '</div>' +
-          '<button type="submit" class="btn btn-water">Log in</button>' +
+          '<button type="submit" class="btn btn-water" id="loginBtn">Log in</button>' +
         '</form>' +
       '</div></div>';
   }
@@ -823,17 +866,15 @@
       }).then(function (geo) {
         var stamp = new Date().toISOString();
         var urls = draft.photos.filter(function (p) { return p.status === "done"; }).map(function (p) { return p.url; });
-        return dbq(sb.from("job_submissions").upsert({
-          job_id: job.id,
+        // One server-side call saves the work and marks the job sent; contractors can't edit jobs directly.
+        return dbq(sb.rpc("submit_job", { p_job_id: job.id, p: {
           checklist: draft.checklist,
           notes: draft.notes,
           photos: urls,
           geo_lat: geo ? geo.lat : null,
           geo_lng: geo ? geo.lng : null,
           submitted_at: stamp
-        })).then(function () {
-          return dbq(sb.from("jobs").update({ status: "submitted" }).eq("id", job.id));
-        }).then(function () {
+        } })).then(function () {
           state.submissions[job.id] = { checklist: draft.checklist, notes: draft.notes, photos: urls, geo: geo, timestamp: stamp };
           job.status = "submitted";
           forget(draftKey(job.id));
@@ -1002,10 +1043,13 @@
 
   // Asks the server to text/email the bill. Anything it couldn't send falls back to the owner's own phone.
   function deliverBill(inv, channels) {
-    return fetch("/api/send-invoice", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceId: inv.id, channels: channels })
+    return sb.auth.getSession().then(function (res) {
+      var session = res.data && res.data.session;
+      return fetch("/api/send-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+        body: JSON.stringify({ invoiceId: inv.id, channels: channels })
+      });
     }).then(function (r) {
       return r.json().catch(function () { return {}; });
     }).catch(function () { return {}; }).then(function (data) {
@@ -1114,10 +1158,8 @@
     var serviceOptions = Object.keys(PRICES).map(function (key) {
       return '<option value="' + key + '">' + esc(PRICES[key].label) + '</option>';
     }).join("");
-    var contractorOptions = Object.keys(USERS).filter(function (key) {
-      return USERS[key].role === "contractor";
-    }).map(function (key) {
-      return '<option value="' + key + '">' + esc(USERS[key].displayName) + '</option>';
+    var contractorOptions = Object.keys(state.contractors).map(function (key) {
+      return '<option value="' + esc(key) + '">' + esc(state.contractors[key]) + '</option>';
     }).join("");
     var first = state.clients[0] || {};
     var firstKey = Object.keys(PRICES)[0];
@@ -1348,6 +1390,8 @@
     }
 
     if (!state.currentUser) {
+      // Still checking for a saved login: don't flash the login form.
+      if (state.loading) { app.innerHTML = '<main><p class="page-sub" style="margin-top:40px;">Loading…</p></main>'; return; }
       app.innerHTML = renderLogin();
       bind();
       return;
@@ -1412,7 +1456,7 @@
     onAll("data-tab", function (t) { state.clientTab = t; render(); window.scrollTo(0, 0); });
     on("loginForm", "submit", function (e) {
       e.preventDefault();
-      attemptLogin(document.getElementById("loginUser").value, document.getElementById("loginPass").value);
+      attemptLogin(document.getElementById("loginUser").value, document.getElementById("loginPass").value, document.getElementById("loginBtn"));
     });
     on("logoutBtn", "click", logout);
     on("refreshBtn", "click", function () { state.view = "list"; loadAll(); });
@@ -1462,8 +1506,15 @@
   if (params.get("paid") === "cancelled") setTimeout(function () { toast("Payment cancelled. You can try again any time."); }, 300);
 
   if (state.payToken) loadPayPage();
-  else if (state.currentUser) loadAll();
-  else { state.loading = false; render(); }
+  else {
+    // Supabase keeps the login between visits; pick it back up if there is one.
+    sb.auth.getSession().then(function (res) {
+      var session = res.data && res.data.session;
+      if (session) return startSession(session.user);
+      state.loading = false;
+      render();
+    }).catch(function () { state.loading = false; render(); });
+  }
 })();
 </script>
 </body>
