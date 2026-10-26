@@ -651,7 +651,7 @@
       var label = job.status === "pending" ? "To do" : job.status === "submitted" ? "Sent to office" : job.status === "approved" ? "Approved" : "Billed";
       html += '<button class="jobrow" data-open="' + esc(job.id) + '">' +
         (photos.length ? '<img class="thumb" src="' + esc(photos[photos.length - 1]) + '" alt="">' : '') +
-        '<span class="txt"><b>' + esc(client.name) + '</b><span class="line">' + esc(client.address) + ' · ' + esc(serviceLabel(job)) + '</span></span>' +
+        '<span class="txt"><b>' + esc(client.address) + '</b><span class="line">' + esc(serviceLabel(job)) + '</span></span>' +
         '<span class="status ' + esc(job.status) + '">' + label + '</span>' +
       '</button>';
     });
@@ -717,7 +717,8 @@
     var readonly = job.status !== "pending";
     var ticked = checklist.filter(function (item, i) { return draft.checklist[i]; }).length;
 
-    var head = '<b>' + esc(client.name) + '</b><span>' + esc(client.address) + ' · ' + esc(serviceLabel(job)) + '</span>';
+    // Contractors see the address and the work, never the client's name or contact info.
+    var head = '<b>' + esc(client.address) + '</b><span>' + esc(serviceLabel(job)) + '</span>';
     var cam = readonly
       ? '<div class="cam readonly"><button class="back" id="backBtn">Back</button><span class="lbl">' + head + '</span></div>'
       : '<button class="cam" id="camBtn" aria-label="Take photo">' +
