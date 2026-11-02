@@ -1,5 +1,9 @@
 -- Real logins + row level security.
--- Run once in the Supabase SQL editor, then create the logins with scripts/create-users.js.
+-- 1. Create the logins first: Supabase dashboard > Authentication > Users > Add user > Create new user,
+--    tick "Auto Confirm User", emails owner@serviceops.test, manager@serviceops.test,
+--    contractor1@serviceops.test, customer1@serviceops.test ... customer4@serviceops.test
+--    (or run scripts/create-users.js, which does the same).
+-- 2. Paste this whole file into the SQL editor and run it. Safe to run again.
 -- After this runs, the old main branch (hardcoded passwords) can no longer read data.
 
 -- ---------- who is who ----------
@@ -153,3 +157,26 @@ drop policy if exists "job photos upload" on storage.objects;
 create policy "job photos upload" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'job-photos' and public.app_role() in ('contractor', 'manager'));
+
+-- ---------- link the logins to roles ----------
+
+-- Gives each login created in step 1 its role. Logins that don't exist yet are skipped;
+-- run this file again after adding them.
+insert into profiles (id, username, role, display_name, client_id)
+select u.id, v.username, v.role, v.display_name, v.client_id
+from (values
+  ('owner', 'manager', 'Owner', null::text),
+  ('manager', 'manager', 'Manager', null),
+  ('contractor1', 'contractor', 'Contractor 1', null),
+  ('customer1', 'client', 'Maria Chen', 'c1'),
+  ('customer2', 'client', 'Robert Diaz', 'c2'),
+  ('customer3', 'client', 'Aiko Tanaka', 'c3'),
+  ('customer4', 'client', 'The Nguyen Family', 'c4')
+) as v (username, role, display_name, client_id)
+join auth.users u on lower(u.email) = v.username || '@serviceops.test'
+on conflict (id) do update set
+  username = excluded.username, role = excluded.role,
+  display_name = excluded.display_name, client_id = excluded.client_id;
+
+-- Shows which logins are set up. Every username above should be listed.
+select username, role, display_name from profiles order by role, username;
