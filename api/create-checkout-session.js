@@ -10,20 +10,22 @@ module.exports = async (req, res) => {
     return;
   }
 
+  if (!supabase.hasServiceRole) {
+    res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY is not set" });
+    return;
+  }
+
   try {
     var body = req.body;
     if (typeof body === "string") body = JSON.parse(body);
+    // The secret pay token is what proves the caller may pay this bill; an invoice id alone isn't enough.
     var payToken = body && body.payToken;
-    var invoiceId = body && body.invoiceId;
-    if (!payToken && !invoiceId) {
-      res.status(400).json({ error: "Missing invoice" });
+    if (!payToken) {
+      res.status(400).json({ error: "Missing pay link" });
       return;
     }
 
-    // Pay links carry the token; logged-in demo clients may only have the id on older invoices.
-    var query = supabase.from("invoices").select("*");
-    query = payToken ? query.eq("pay_token", payToken) : query.eq("id", invoiceId);
-    var invoiceRes = await query.single();
+    var invoiceRes = await supabase.from("invoices").select("*").eq("pay_token", payToken).single();
     if (invoiceRes.error || !invoiceRes.data) {
       res.status(404).json({ error: "Invoice not found" });
       return;
@@ -47,7 +49,7 @@ module.exports = async (req, res) => {
     var client = clientRes.data;
 
     var origin = req.headers.origin || ("https://" + req.headers.host);
-    var back = invoice.pay_token ? origin + "/?pay=" + encodeURIComponent(invoice.pay_token) : origin + "/?";
+    var back = origin + "/?pay=" + encodeURIComponent(invoice.pay_token);
 
     var lineItems = [{
       price_data: {

@@ -68,7 +68,19 @@ module.exports = async (req, res) => {
     return;
   }
 
+  if (!supabase.hasServiceRole) {
+    res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY is not set" });
+    return;
+  }
+
   try {
+    // Only the office can text or email clients.
+    var caller = await supabase.callerProfile(req);
+    if (!caller || caller.role !== "manager") {
+      res.status(401).json({ error: "Log in as the owner or a manager to send bills" });
+      return;
+    }
+
     var body = req.body;
     if (typeof body === "string") body = JSON.parse(body);
     var invoiceId = body && body.invoiceId;
