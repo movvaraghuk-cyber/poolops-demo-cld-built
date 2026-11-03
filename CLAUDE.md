@@ -134,6 +134,7 @@ Outreach (2026-11-03): **first 10 sent** (see tracker), no bounces at the end of
 ## Working agreements
 - **Vercel is on the Hobby plan, so only Raghu's commits deploy.** Commits must use Git identity `movvaraghuk-cyber` / `277414160+movvaraghuk-cyber@users.noreply.github.com`. Sriram's code changes go to Raghu as a patch or text file; Raghu's Claude applies and commits them.
 - Don't push to `main` or change production (Vercel, Supabase, Stripe) without the other co-founder knowing. Test on the branch's Vercel preview first. Previews use the **live database**, so test with demo clients only.
+- **Keep GitHub clean (Raghu, 2026-11-03):** after a pull request merges, delete its branch, and don't leave stale branches around. Never delete `main` or `outreach`. Claude cloud sessions can't delete branches (GitHub returns 403), so tell Raghu which ones to delete, or turn on Settings → General → "Automatically delete head branches" in each repo. Leftover `rewrite/react-fastapi` in pool-service-manager has 2 unmerged commits from Santosh Chamarthy (2026-08-31); ask him before deleting.
 - **Outreach rules:**
   - Email outreach runs from the ServiceOps business email through Raghu's Claude. See "Raghu's Claude: start here" above.
   - Every email keeps the mailing address and opt-out line (CAN-SPAM).
