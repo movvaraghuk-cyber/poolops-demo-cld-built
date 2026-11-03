@@ -35,13 +35,15 @@ Subject: `A simpler way to invoice and get paid at [Business name]`
 >
 > Best regards,
 > The ServiceOps Team
+> Agile Associates LLC
+> https://agileassociatesllcus.com/#work
 > (503) 376-4303
 >
 > ServiceOps · 2401 Durant Ave, Berkeley, CA 94704 · Reply "no thanks" and we won't email again.
 
 - **Sriram:** Raghu changed the email on 2026-11-03 to sound like a company (no student mention, signed "The ServiceOps Team"). Use this version.
 - **The last line is required, so keep it.** It's federal law (CAN-SPAM) for business cold email, and an easy way to say no also means fewer people click "Report spam", which helps delivery.
-- **Plain text only:** no links, images, attachments or the demo link in the first email. Send the demo link (https://app.agileassociatesllcus.com, logins `owner` / `contractor1` / `customer1`) only after someone replies with interest. **The demo password is no longer `test123`** (real logins went live 2026-11-02). Ask Raghu for the demo password; don't write it in this file.
+- **Plain text only:** no images, attachments or demo link in the first email. The one exception is the Agile Associates website link in the signature (added by Raghu 2026-11-03). Send the demo link (https://app.agileassociatesllcus.com, logins `owner` / `contractor1` / `customer1`) only after someone replies with interest. **The demo password is no longer `test123`** (real logins went live 2026-11-02). Ask Raghu for the demo password; don't write it in this file.
 
 ### 3. Avoiding the spam folder
 **A brand-new domain that sends 50 cold emails on day one will very likely land in spam,** and Google may limit the account. Google Workspace trial accounts also have lower sending limits. Raghu picked **option A**:
@@ -118,7 +120,7 @@ Still to do from Sriram's PR #4 review:
 
 Company email (2026-11-02): Google Workspace Business Starter on `agileassociatesllcus.com`. One account, `hello@`, shared by both co-founders. Free aliases: `info@`, `billing@`, `admin@`, `raghu@`, plus the partner's name. Domain verified; MX, SPF and DKIM set in Namecheap. DMARC not yet added.
 
-Outreach (2026-11-03): not started sending. Mailing address set and Gmail connector on the business account. DMARC added and mail-tester scored 10/10. Waiting on Raghu's go for the first batch. 13 businesses found so far; see `outreach-tracker.csv`.
+Outreach (2026-11-03): **first 10 sent** (see tracker), no bounces at the end of the session. Sender shows as "Team Agile Associates" (set in Google Admin; the Gmail connector uses the account name, not the Send-as name, and drafts keep the name they were created with). 3 more found but not sent: All Pure Pool Service and Absolute Clean Pools look stale, Modesto Pool Services unchecked. Next: check replies, find more businesses (target 50), keep to 10–15 a day this week.
 
 **Not built yet:**
 - multi-business support and Stripe Connect (wait until 2–3 pilots are paying; until then, give each pilot its own Supabase and Vercel project)
@@ -154,4 +156,4 @@ Outreach (2026-11-03): not started sending. Mailing address set and Gmail connec
 - **2026-10-28 (Sriram):** Claude tested the full demo end to end with no errors: job → contractor photo/checklist → approve → bill → pay link → Stripe checkout (sandbox mode, `cs_test_`). Demo is good enough to show prospects. A test Robert Diaz $85 bill was left in the demo.
 - **2026-10-30 (Sriram):** handed email outreach to Raghu's Claude: first 50 emails, then 30 every Tue/Thu (see "start here").
 - **2026-11-02 (Raghu):** set up Google Workspace (`hello@agileassociatesllcus.com` + aliases, SPF, DKIM). Merged and deployed PR #4: ran the migration on live Supabase, created logins, merged. Moved these notes and the tracker to the `outreach` branch so they no longer have to be emailed back and forth. Outreach answers recorded (section 1). Started researching businesses. Nothing sent yet: waiting on a mailing address and on switching the Gmail connector to `hello@`.
-- **2026-11-03 (Raghu):** footer mailing address set (2401 Durant Ave, Berkeley). mail-tester score 10/10 (DMARC added). Gmail connector now signed in to the business account. New email approved (section 2); first 10 saved as Gmail drafts for Raghu to review. Nothing sent.
+- **2026-11-03 (Raghu):** footer mailing address set (2401 Durant Ave, Berkeley). mail-tester score 10/10 (DMARC added). Gmail connector now signed in to the business account. New email approved (section 2). Sent the first 10 (first 3 went out as "Raghu Movva" before the name fix; Rise 'n' Shine was the first with the website link). No bounces.
