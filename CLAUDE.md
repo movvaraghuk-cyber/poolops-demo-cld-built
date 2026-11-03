@@ -36,14 +36,14 @@ Subject: `A simpler way to invoice and get paid at [Business name]`
 > Best regards,
 > The ServiceOps Team
 > Agile Associates LLC
-> https://agileassociatesllcus.com/#work
+> https://www.agileassociatesllcus.com/#work
 > (503) 376-4303
 >
 > ServiceOps · 2401 Durant Ave, Berkeley, CA 94704 · Reply "no thanks" and we won't email again.
 
 - **Sriram:** Raghu changed the email on 2026-11-03 to sound like a company (no student mention, signed "The ServiceOps Team"). Use this version.
 - **The last line is required, so keep it.** It's federal law (CAN-SPAM) for business cold email, and an easy way to say no also means fewer people click "Report spam", which helps delivery.
-- **Plain text only:** no images, attachments or demo link in the first email. The one exception is the Agile Associates website link in the signature (added by Raghu 2026-11-03). Send the demo link (https://app.agileassociatesllcus.com, logins `owner` / `contractor1` / `customer1`) only after someone replies with interest. **The demo password is no longer `test123`** (real logins went live 2026-11-02). Ask Raghu for the demo password; don't write it in this file.
+- **Plain text only:** no images, attachments or demo link in the first email. The one exception is the Agile Associates website link in the signature (added by Raghu 2026-11-03). Send it as a real link: put the email in `htmlBody` with `<a href="https://www.agileassociatesllcus.com/#work">https://www.agileassociatesllcus.com/#work</a>` and the same text in `body`. Raghu doesn't want a long or wrapped link showing in the signature. Send him a test first if the format changes. Send the demo link (https://app.agileassociatesllcus.com, logins `owner` / `contractor1` / `customer1`) only after someone replies with interest. **The demo password is no longer `test123`** (real logins went live 2026-11-02). Ask Raghu for the demo password; don't write it in this file.
 
 ### 3. Avoiding the spam folder
 **A brand-new domain that sends 50 cold emails on day one will very likely land in spam,** and Google may limit the account. Google Workspace trial accounts also have lower sending limits. Raghu picked **option A**:
