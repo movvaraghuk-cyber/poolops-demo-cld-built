@@ -18,23 +18,28 @@ Sriram has handed the email outreach to Raghu. Raghu sends from the ServiceOps b
 4. **Sending pace:** option A (warm up).
 5. Show him **3 finished sample emails** and get his OK before the first batch goes out.
 
-### 2. The email (Sriram's approved text: keep the wording, and personalize only the bracketed parts)
-Subject: `Small business help inquiry from a local`
+### 2. The email (approved by Raghu 2026-11-03; replaces Sriram's earlier student version. Keep the wording, and personalize only the bracketed parts)
+Subject: `A simpler way to invoice and get paid at [Business name]`
 
 > Hi [Owner first name, or "there" if unknown],
 >
-> I came across [Business name] while looking at pool companies around [their city / nearby area].
+> I came across [Business name] while looking at pool service companies around [their city / nearby area].
 >
-> I'm Sriram, a student at UC Berkeley. My uncle and I are building a simple app for small pool service businesses. The app handles all invoicing, contractor contacting, photo logs, etc. all in one place in a seamless fashion. You get paid without having to juggle between multiple different subscription services to manage your business.
+> We're ServiceOps, and we build software for pool service businesses. Most owners we speak with run their business across several tools: QuickBooks for invoices, a separate app for job photos, and a lot of texting with techs and customers. ServiceOps replaces all of that with one simple tool:
 >
-> Would you be open to a 15-minute chat whenever you're free to discuss how we can help your business?
+> - Your techs log each visit from their phone, with photos and a checklist
+> - You review the work and send the invoice in a couple of taps
+> - Customers pay online by card or bank transfer through Stripe, and the invoice is marked paid automatically
 >
-> Thanks,
-> Sriram Joshi and Raghu Movva
+> Would you be open to a 15-minute call to see if it would fit your business?
+>
+> Best regards,
+> The ServiceOps Team
 > (503) 376-4303
 >
 > ServiceOps · 2401 Durant Ave, Berkeley, CA 94704 · Reply "no thanks" and we won't email again.
 
+- **Sriram:** Raghu changed the email on 2026-11-03 to sound like a company (no student mention, signed "The ServiceOps Team"). Use this version.
 - **The last line is required, so keep it.** It's federal law (CAN-SPAM) for business cold email, and an easy way to say no also means fewer people click "Report spam", which helps delivery.
 - **Plain text only:** no links, images, attachments or the demo link in the first email. Send the demo link (https://app.agileassociatesllcus.com, logins `owner` / `contractor1` / `customer1`) only after someone replies with interest. **The demo password is no longer `test123`** (real logins went live 2026-11-02). Ask Raghu for the demo password; don't write it in this file.
 
@@ -149,4 +154,4 @@ Outreach (2026-11-03): not started sending. Mailing address set and Gmail connec
 - **2026-10-28 (Sriram):** Claude tested the full demo end to end with no errors: job → contractor photo/checklist → approve → bill → pay link → Stripe checkout (sandbox mode, `cs_test_`). Demo is good enough to show prospects. A test Robert Diaz $85 bill was left in the demo.
 - **2026-10-30 (Sriram):** handed email outreach to Raghu's Claude: first 50 emails, then 30 every Tue/Thu (see "start here").
 - **2026-11-02 (Raghu):** set up Google Workspace (`hello@agileassociatesllcus.com` + aliases, SPF, DKIM). Merged and deployed PR #4: ran the migration on live Supabase, created logins, merged. Moved these notes and the tracker to the `outreach` branch so they no longer have to be emailed back and forth. Outreach answers recorded (section 1). Started researching businesses. Nothing sent yet: waiting on a mailing address and on switching the Gmail connector to `hello@`.
-- **2026-11-03 (Raghu):** footer mailing address set (2401 Durant Ave, Berkeley). mail-tester score 10/10 (DMARC added). Gmail connector now signed in to the business account. First 10 drafts deleted; Raghu is rewriting the email (more professional, no student mention). Nothing sent.
+- **2026-11-03 (Raghu):** footer mailing address set (2401 Durant Ave, Berkeley). mail-tester score 10/10 (DMARC added). Gmail connector now signed in to the business account. New email approved (section 2); first 10 saved as Gmail drafts for Raghu to review. Nothing sent.
