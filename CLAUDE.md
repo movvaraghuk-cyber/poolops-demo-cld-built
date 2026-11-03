@@ -13,8 +13,8 @@ Sriram has handed the email outreach to Raghu. Raghu sends from the ServiceOps b
 
 ### 1. Raghu's answers (recorded 2026-11-02)
 1. **Phone number:** yes: (503) 376-4303.
-2. **Sending address:** `raghu@agileassociatesllcus.com` (an alias on the `hello@` Google Workspace account), sender name "Raghu Movva". The Claude Gmail connector must be signed in to `hello@agileassociatesllcus.com`. On 2026-11-02 it was still on Raghu's personal Gmail: **do not send from that.** Check which account the connector uses before every send.
-3. **Business mailing address:** **still needed.** Raghu has no PO box yet. "Lathrop, California" alone does not meet CAN-SPAM, which needs a full postal address (street, PO box, or private mailbox). Plan: smallest USPS PO Box in Lathrop. **Send nothing until the footer has a real address.**
+2. **Sending address:** `raghu@agileassociatesllcus.com` (an alias on the `hello@` Google Workspace account), sender name "Raghu Movva". The Claude Gmail connector must be signed in to `hello@agileassociatesllcus.com`. Since 2026-11-03 it is (the inbox shows mail to `raghu@` and `sriram@` aliases). Check which account the connector uses before every send; never send from a personal Gmail.
+3. **Business mailing address:** `2631 Durant Ave, Berkeley, CA 94704` (given by Raghu 2026-11-03). Use it in the footer.
 4. **Sending pace:** option A (warm up).
 5. Show him **3 finished sample emails** and get his OK before the first batch goes out.
 
@@ -33,7 +33,7 @@ Subject: `Small business help inquiry from a local`
 > Sriram Joshi and Raghu Movva
 > (503) 376-4303
 >
-> ServiceOps · [mailing address] · Reply "no thanks" and we won't email again.
+> ServiceOps · 2631 Durant Ave, Berkeley, CA 94704 · Reply "no thanks" and we won't email again.
 
 - **The last line is required, so keep it.** It's federal law (CAN-SPAM) for business cold email, and an easy way to say no also means fewer people click "Report spam", which helps delivery.
 - **Plain text only:** no links, images, attachments or the demo link in the first email. Send the demo link (https://app.agileassociatesllcus.com, logins `owner` / `contractor1` / `customer1`) only after someone replies with interest. **The demo password is no longer `test123`** (real logins went live 2026-11-02). Ask Raghu for the demo password; don't write it in this file.
@@ -113,7 +113,7 @@ Still to do from Sriram's PR #4 review:
 
 Company email (2026-11-02): Google Workspace Business Starter on `agileassociatesllcus.com`. One account, `hello@`, shared by both co-founders. Free aliases: `info@`, `billing@`, `admin@`, `raghu@`, plus the partner's name. Domain verified; MX, SPF and DKIM set in Namecheap. DMARC not yet added.
 
-Outreach (2026-11-02): not started sending. Blocked on (1) a mailing address for the footer and (2) the Gmail connector being signed in to `hello@`. Business research has started; see `outreach-tracker.csv`.
+Outreach (2026-11-03): not started sending. Mailing address set and Gmail connector on the business account. Still to do before the first send: DMARC record, mail-tester check, and Raghu's OK on the 3 sample emails. 13 businesses found so far; see `outreach-tracker.csv`.
 
 **Not built yet:**
 - multi-business support and Stripe Connect (wait until 2–3 pilots are paying; until then, give each pilot its own Supabase and Vercel project)
@@ -149,3 +149,4 @@ Outreach (2026-11-02): not started sending. Blocked on (1) a mailing address for
 - **2026-10-28 (Sriram):** Claude tested the full demo end to end with no errors: job → contractor photo/checklist → approve → bill → pay link → Stripe checkout (sandbox mode, `cs_test_`). Demo is good enough to show prospects. A test Robert Diaz $85 bill was left in the demo.
 - **2026-10-30 (Sriram):** handed email outreach to Raghu's Claude: first 50 emails, then 30 every Tue/Thu (see "start here").
 - **2026-11-02 (Raghu):** set up Google Workspace (`hello@agileassociatesllcus.com` + aliases, SPF, DKIM). Merged and deployed PR #4: ran the migration on live Supabase, created logins, merged. Moved these notes and the tracker to the `outreach` branch so they no longer have to be emailed back and forth. Outreach answers recorded (section 1). Started researching businesses. Nothing sent yet: waiting on a mailing address and on switching the Gmail connector to `hello@`.
+- **2026-11-03 (Raghu):** footer mailing address set (2631 Durant Ave, Berkeley). Gmail connector now signed in to the business account. Still before first send: DMARC, mail-tester, sample OK.
