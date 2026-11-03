@@ -83,6 +83,9 @@ Do these before any sending:
 - **Pause the schedule and tell Raghu** if bounces go over 5%, someone complains, or Gmail shows a sending-limit warning.
 - On option A, hold the scheduled runs at about 15 a run until week 3.
 
+### 5b. Reply monitoring (set up 2026-11-03)
+- A scheduled task "ServiceOps reply check" runs every 2 hours in Raghu's Claude session. It checks the inbox for replies and bounces, updates the tracker, and notifies Raghu when someone asks for a call, info or a demo. It never replies or sends outreach itself.
+
 ### 6. When the session ends
 Update "Current state", "Session log" and the tracker, then commit and push to the `outreach` branch.
 
