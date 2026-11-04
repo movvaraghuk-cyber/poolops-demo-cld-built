@@ -13,7 +13,7 @@ Sriram has handed the email outreach to Raghu. Raghu sends from the ServiceOps b
 
 ### 1. Raghu's answers (recorded 2026-11-02)
 1. **Phone number:** yes: (503) 376-4303.
-2. **Sending address:** `raghu@agileassociatesllcus.com` (an alias on the `hello@` Google Workspace account), sender name "Raghu Movva". The Claude Gmail connector must be signed in to `hello@agileassociatesllcus.com`. Since 2026-11-03 it is (the inbox shows mail to `raghu@` and `sriram@` aliases). Check which account the connector uses before every send; never send from a personal Gmail.
+2. **Sending address:** the Google Workspace account `team@agileassociatesllcus.com` (renamed from `hello@` on 2026-11-04; `hello@` still works as an alias). Sender name "Team Agile Associates". The Claude Gmail connector is signed in to this account. Check which account the connector uses before every send; never send from a personal Gmail.
 3. **Business mailing address:** `2401 Durant Ave, Berkeley, CA 94704` (given by Raghu 2026-11-03; changed from 2631 Durant the same day). Use it in the footer.
 4. **Sending pace:** option A (warm up).
 5. Show him **3 finished sample emails** and get his OK before the first batch goes out.
@@ -121,7 +121,7 @@ Still to do from Sriram's PR #4 review:
 1. **Drop the `"job photos read"` select policy on `storage.objects`** (created in `20261020_invoices_contacts_photos.sql`). It lets anyone with the anon key list every photo in the bucket. Public-bucket URLs still load without it.
 2. **Turn off public sign-ups** in Supabase (Authentication → Sign In / Providers).
 
-Company email (2026-11-02): Google Workspace Business Starter on `agileassociatesllcus.com`. One account, `hello@`, shared by both co-founders. Free aliases: `info@`, `billing@`, `admin@`, `raghu@`, plus the partner's name. Domain verified; MX, SPF and DKIM set in Namecheap. DMARC not yet added.
+Company email (2026-11-02): Google Workspace Business Starter on `agileassociatesllcus.com`. One account, `team@` (was `hello@` until 2026-11-04; `hello@` is now an alias), shared by both co-founders. Free aliases: `info@`, `billing@`, `admin@`, `raghu@`, plus the partner's name. Domain verified; MX, SPF and DKIM set in Namecheap. DMARC not yet added.
 
 Outreach (2026-11-03): **first 10 sent** (see tracker), no bounces at the end of the session. Sender shows as "Team Agile Associates" (set in Google Admin; the Gmail connector uses the account name, not the Send-as name, and drafts keep the name they were created with). 3 more found but not sent: All Pure Pool Service and Absolute Clean Pools look stale, Modesto Pool Services unchecked. Next: check replies, find more businesses (target 50), keep to 10–15 a day this week.
 
@@ -161,3 +161,4 @@ Outreach (2026-11-03): **first 10 sent** (see tracker), no bounces at the end of
 - **2026-10-30 (Sriram):** handed email outreach to Raghu's Claude: first 50 emails, then 30 every Tue/Thu (see "start here").
 - **2026-11-02 (Raghu):** set up Google Workspace (`hello@agileassociatesllcus.com` + aliases, SPF, DKIM). Merged and deployed PR #4: ran the migration on live Supabase, created logins, merged. Moved these notes and the tracker to the `outreach` branch so they no longer have to be emailed back and forth. Outreach answers recorded (section 1). Started researching businesses. Nothing sent yet: waiting on a mailing address and on switching the Gmail connector to `hello@`.
 - **2026-11-03 (Raghu):** footer mailing address set (2401 Durant Ave, Berkeley). mail-tester score 10/10 (DMARC added). Gmail connector now signed in to the business account. New email approved (section 2). Sent the first 10 (first 3 went out as "Raghu Movva" before the name fix; Rise 'n' Shine was the first with the website link). No bounces.
+- **2026-11-03/04 (Raghu):** sent 15 total by end of 11-03 (Vintage re-sent to vintage@nvrgrn.com after an auto-reply); no business replies or bounces yet. Reply check runs every 2 hours. Renamed the Workspace account hello@ → team@ on 11-04. Next sends: H & H Pool Services and the other to-send rows, 10–15 a day.
