@@ -1,0 +1,51 @@
+# Keeps the free-plan Supabase project from being paused for inactivity.
+# Supabase pauses free projects after about 7 days without activity. This runs a
+# small read-only database query once a day, so the project always looks active.
+# It uses the public anon key that's already in index.html, so no secrets are needed.
+# If the ping fails, the run goes red and GitHub emails the repo owner.
+# Run it by hand any time: GitHub > Actions > Supabase keep-alive > Run workflow.
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 15 * * *" # every day, 15:17 UTC (7:17am Pacific)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: index.html
+          sparse-checkout-cone-mode: false
+
+      - name: Query the database
+        run: |
+          set -euo pipefail
+          URL=$(grep -oP 'SUPABASE_URL = "\K[^"]+' index.html)
+          KEY=$(grep -oP 'SUPABASE_ANON_KEY = "\K[^"]+' index.html)
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "Couldn't find SUPABASE_URL / SUPABASE_ANON_KEY in index.html"; exit 1
+          fi
+          # invoice_by_token is the pay page's lookup and is open to the anon key.
+          # A made-up token matches nothing, so this reads no data, but it still
+          # runs a real query against the database.
+          for attempt in 1 2 3; do
+            code=$(curl -sS -m 30 -o /tmp/out.json -w '%{http_code}' -X POST \
+              "$URL/rest/v1/rpc/invoice_by_token" \
+              -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"p_token":"keepalive-ping-0000000000"}') || code=000
+            echo "Attempt $attempt: HTTP $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 20
+          done
+          cat /tmp/out.json || true
+          echo "Supabase didn't answer. If the project is paused, restore it in the Supabase dashboard."
+          exit 1
